@@ -161,7 +161,7 @@ export default function EntregasRodados() {
                   {filteredEntregas.length > 0 ? (
                     filteredEntregas.map((entrega) => (
                       <TableRow key={entrega.id}>
-                        <TableCell className="font-medium">{entrega.id.slice(0, 8)}...</TableCell>
+                        <TableCell className="font-medium">#{entrega.id}</TableCell>
                         <TableCell>{entrega.propietario_nombre} {entrega.propietario_apellido}</TableCell>
                         <TableCell className="hidden md:table-cell">{entrega.propietario_dni}</TableCell>
                         <TableCell className="hidden md:table-cell">{entrega.patente}</TableCell>

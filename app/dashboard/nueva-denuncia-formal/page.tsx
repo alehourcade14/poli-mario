@@ -111,8 +111,7 @@ export default function NuevaDenunciaFormal() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          numero_expediente: formData.numExpediente || `EXP-${Date.now()}`,
-          numero_denuncia: formData.numExpediente || `DEN-FORMAL-${Date.now()}`,
+          numero_expediente: formData.numExpediente || `EXP-FORMAL-${Date.now()}`,
           denunciante_nombre: formData.denunciante.split(' ')[0] || formData.denunciante,
           denunciante_apellido: formData.denunciante.split(' ').slice(1).join(' ') || '',
           denunciante_dni: formData.dni,

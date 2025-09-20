@@ -259,7 +259,7 @@ export default function DenunciasTable() {
             {filteredDenuncias.length > 0 ? (
               filteredDenuncias.map((denuncia) => (
                 <TableRow key={denuncia.id}>
-                  <TableCell className="font-medium">{denuncia.id.slice(0, 8)}...</TableCell>
+                  <TableCell className="font-medium">#{denuncia.id}</TableCell>
                   <TableCell>
                     {denuncia.denunciante_nombre && denuncia.denunciante_apellido 
                       ? `${denuncia.denunciante_nombre} ${denuncia.denunciante_apellido}`

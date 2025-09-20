@@ -20,7 +20,6 @@ export async function GET(request: Request) {
       SELECT 
         d.id,
         d.numero_expediente,
-        d.numero_denuncia,
         d.denunciante_nombre,
         d.denunciante_apellido,
         d.denunciante_dni,
@@ -34,13 +33,8 @@ export async function GET(request: Request) {
         d.latitud,
         d.longitud,
         d.descripcion,
-        d.tipo_delito,
-        d.division,
-        d.barrio_hecho,
-        d.num_expediente,
-        d.direccion,
-        d.ubicacion_lat,
-        d.ubicacion_lng,
+        d.tipo_delito_id,
+        d.estado_id,
         d.fecha_denuncia,
         d.hora_denuncia,
         d.observaciones,
@@ -52,7 +46,7 @@ export async function GET(request: Request) {
         u.nombre || ' ' || u.apellido as creador_nombre
       FROM denuncias d
       LEFT JOIN departamentos de ON d.departamento_id = de.id
-      LEFT JOIN estados es ON d.estado_id = es.id
+      LEFT JOIN estados_denuncias es ON d.estado_id = es.id
       LEFT JOIN usuarios u ON d.usuario_id = u.id
       ORDER BY d.created_at DESC
     `)
@@ -86,9 +80,9 @@ export async function POST(request: Request) {
 
     const data = await request.json()
     
-    // Obtener estado por defecto (Consulta)
-    const estadoResult = await query('SELECT id FROM estados WHERE nombre = $1', ['Consulta'])
-    const estadoId = estadoResult.rows[0]?.id || '2d169b08-1bdb-4f56-acf6-4dc3ba4e92f5' // ID del estado Consulta
+    // Obtener estado por defecto (Pendiente)
+    const estadoResult = await query('SELECT id FROM estados_denuncias WHERE nombre = $1', ['Pendiente'])
+    const estadoId = estadoResult.rows[0]?.id || 1 // ID del estado Pendiente (asumiendo que es el primer estado)
 
     // Obtener departamento si existe
     let departamentoId = null
@@ -99,15 +93,14 @@ export async function POST(request: Request) {
 
     const result = await query(`
       INSERT INTO denuncias (
-        numero_expediente, numero_denuncia, denunciante_nombre, denunciante_apellido,
+        numero_expediente, denunciante_nombre, denunciante_apellido,
         denunciante_dni, denunciante_telefono, denunciante_email, denunciante_direccion,
         fecha_hecho, hora_hecho, lugar_hecho, departamento_hecho, latitud, longitud,
-        descripcion, tipo_delito, estado_id, departamento_id, usuario_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        descripcion, tipo_delito_id, estado_id, departamento_id, usuario_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `, [
       data.numero_expediente || `EXP-${Date.now()}`,
-      data.numero_denuncia || `DEN-${Date.now()}`,
       data.denunciante_nombre,
       data.denunciante_apellido,
       data.denunciante_dni,
@@ -121,7 +114,7 @@ export async function POST(request: Request) {
       data.latitud || null,
       data.longitud || null,
       data.descripcion,
-      data.tipo_delito,
+      data.tipo_delito_id,
       estadoId,
       departamentoId,
       decoded.id

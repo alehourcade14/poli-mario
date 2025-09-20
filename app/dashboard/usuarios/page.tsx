@@ -397,7 +397,7 @@ export default function Usuarios() {
               <TableBody>
                 {users.map((u) => (
                   <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.id.slice(0, 8)}...</TableCell>
+                    <TableCell className="font-medium">#{u.id}</TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>{u.nombre} {u.apellido}</TableCell>
                     <TableCell>{u.departamento_nombre || "-"}</TableCell>

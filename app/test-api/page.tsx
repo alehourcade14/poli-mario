@@ -40,7 +40,6 @@ export default function TestAPI() {
         credentials: 'include',
         body: JSON.stringify({
           numero_expediente: `EXP-${Date.now()}`,
-          numero_denuncia: `DEN-${Date.now()}`,
           denunciante_nombre: 'Juan',
           denunciante_apellido: 'Pérez',
           denunciante_dni: '12345678',
@@ -120,7 +119,6 @@ export default function TestAPI() {
               <div key={denuncia.id} className="border p-3 rounded">
                 <p><strong>ID:</strong> {denuncia.id}</p>
                 <p><strong>Número Expediente:</strong> {denuncia.numero_expediente}</p>
-                <p><strong>Número Denuncia:</strong> {denuncia.numero_denuncia}</p>
                 <p><strong>Denunciante:</strong> {denuncia.denunciante_nombre} {denuncia.denunciante_apellido}</p>
                 <p><strong>DNI:</strong> {denuncia.denunciante_dni}</p>
                 <p><strong>Teléfono:</strong> {denuncia.denunciante_telefono}</p>

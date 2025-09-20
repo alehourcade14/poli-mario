@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         u.nombre || ' ' || u.apellido as creador_nombre
       FROM denuncias d
       LEFT JOIN departamentos de ON d.departamento_id = de.id
-      LEFT JOIN estados es ON d.estado_id = es.id
+      LEFT JOIN estados_denuncias es ON d.estado_id = es.id
       LEFT JOIN usuarios u ON d.usuario_id = u.id
       WHERE d.id = $1
     `, [params.id])
@@ -65,7 +65,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Obtener estado si se proporciona
     let estadoId = null
     if (data.estado) {
-      const estadoResult = await query('SELECT id FROM estados WHERE nombre = $1', [data.estado])
+      const estadoResult = await query('SELECT id FROM estados_denuncias WHERE nombre = $1', [data.estado])
       estadoId = estadoResult.rows[0]?.id
     }
 
@@ -78,45 +78,39 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     const result = await query(`
       UPDATE denuncias SET
-        numero_denuncia = COALESCE($2, numero_denuncia),
+        numero_expediente = COALESCE($2, numero_expediente),
         denunciante_nombre = COALESCE($3, denunciante_nombre),
         denunciante_dni = COALESCE($4, denunciante_dni),
-        tipo_delito = COALESCE($5, tipo_delito),
+        tipo_delito_id = COALESCE($5, tipo_delito_id),
         departamento_id = COALESCE($6, departamento_id),
-        division = COALESCE($7, division),
-        descripcion = COALESCE($8, descripcion),
-        estado_id = COALESCE($9, estado_id),
-        fecha_denuncia = COALESCE($10, fecha_denuncia),
-        hora_denuncia = COALESCE($11, hora_denuncia),
-        fecha_hecho = COALESCE($12, fecha_hecho),
-        hora_hecho = COALESCE($13, hora_hecho),
-        barrio_hecho = COALESCE($14, barrio_hecho),
-        num_expediente = COALESCE($15, num_expediente),
-        direccion = COALESCE($16, direccion),
-        ubicacion_lat = COALESCE($17, ubicacion_lat),
-        ubicacion_lng = COALESCE($18, ubicacion_lng),
+        descripcion = COALESCE($7, descripcion),
+        estado_id = COALESCE($8, estado_id),
+        fecha_denuncia = COALESCE($9, fecha_denuncia),
+        hora_denuncia = COALESCE($10, hora_denuncia),
+        fecha_hecho = COALESCE($11, fecha_hecho),
+        hora_hecho = COALESCE($12, hora_hecho),
+        lugar_hecho = COALESCE($13, lugar_hecho),
+        latitud = COALESCE($14, latitud),
+        longitud = COALESCE($15, longitud),
         updated_at = NOW()
       WHERE id = $1
       RETURNING *
     `, [
       params.id,
-      data.numExpediente,
-      data.denunciante,
-      data.dni,
-      data.tipo,
+      data.numero_expediente,
+      data.denunciante_nombre,
+      data.denunciante_dni,
+      data.tipo_delito_id,
       departamentoId,
-      data.division,
       data.descripcion,
       estadoId,
-      data.fechaDenuncia,
-      data.horaDenuncia,
-      data.fechaHecho,
-      data.horaHecho,
-      data.barrioHecho,
-      data.numExpediente,
-      data.direccion,
-      data.ubicacion?.lat,
-      data.ubicacion?.lng
+      data.fecha_denuncia,
+      data.hora_denuncia,
+      data.fecha_hecho,
+      data.hora_hecho,
+      data.lugar_hecho,
+      data.latitud,
+      data.longitud
     ])
 
     if (result.rows.length === 0) {

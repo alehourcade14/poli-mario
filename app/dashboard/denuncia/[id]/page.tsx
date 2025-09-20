@@ -34,7 +34,6 @@ export default function DetalleDenuncia() {
     hora_hecho: "",
     lugar_hecho: "",
     numero_expediente: "",
-    numero_denuncia: "",
     ubicacion: null as { lat: number; lng: number } | null,
   })
   const [error, setError] = useState("")
@@ -89,7 +88,6 @@ export default function DetalleDenuncia() {
           hora_hecho: data.hora_hecho || "",
           lugar_hecho: data.lugar_hecho || "",
           numero_expediente: data.numero_expediente || "",
-          numero_denuncia: data.numero_denuncia || "",
           ubicacion: data.latitud && data.longitud && !isNaN(Number(data.latitud)) && !isNaN(Number(data.longitud)) ? { lat: Number(data.latitud), lng: Number(data.longitud) } : null,
         })
       } catch (error) {
@@ -165,7 +163,6 @@ export default function DetalleDenuncia() {
           hora_hecho: formData.hora_hecho,
           lugar_hecho: formData.lugar_hecho,
           numero_expediente: formData.numero_expediente,
-          numero_denuncia: formData.numero_denuncia,
           latitud: formData.ubicacion?.lat || null,
           longitud: formData.ubicacion?.lng || null,
         })
@@ -466,11 +463,11 @@ export default function DetalleDenuncia() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="numero_denuncia">Nº Denuncia</Label>
+                  <Label htmlFor="numero_expediente">Nº Expediente</Label>
                   <Input
-                    id="numero_denuncia"
-                    name="numero_denuncia"
-                    value={formData.numero_denuncia}
+                    id="numero_expediente"
+                    name="numero_expediente"
+                    value={formData.numero_expediente}
                     onChange={handleChange}
                     disabled={!isEditing}
                     placeholder="Número de denuncia"
