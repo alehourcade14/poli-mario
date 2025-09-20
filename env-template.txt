@@ -1,0 +1,63 @@
+# ============================================
+# CONFIGURACIÓN DEL SISTEMA DE DENUNCIAS
+# ============================================
+
+# ============================================
+# CONFIGURACIÓN DE POSTGRESQL
+# ============================================
+# Configuración de la base de datos PostgreSQL
+# Asegúrate de tener PostgreSQL instalado y corriendo
+
+# Host de la base de datos (localhost para desarrollo local)
+POSTGRES_HOST=localhost
+
+# Puerto de PostgreSQL (por defecto 5432)
+POSTGRES_PORT=5432
+
+# Nombre de la base de datos
+POSTGRES_DB=sistema_denuncias
+
+# Usuario de la base de datos
+POSTGRES_USER=postgres
+
+# Contraseña de la base de datos
+POSTGRES_PASSWORD=tu_password_aqui
+
+# ============================================
+# GOOGLE MAPS API
+# ============================================
+# Para obtener la API key:
+# 1. Ve a https://console.cloud.google.com
+# 2. Crea un proyecto o selecciona uno existente
+# 3. Habilita 'Maps JavaScript API'
+# 4. Ve a 'Credentials' y crea una API Key
+# 5. Configura las restricciones de dominio para seguridad
+
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=tu-google-maps-api-key-aqui
+
+# ============================================
+# CONFIGURACIÓN DE AUTENTICACIÓN
+# ============================================
+# Secreto para JWT (genera uno aleatorio y seguro)
+JWT_SECRET=tu-secreto-super-seguro-para-jwt-cambiar-en-produccion
+
+# URL de tu aplicación
+NEXTAUTH_URL=http://localhost:3000
+
+# ============================================
+# CONFIGURACIÓN DE DESARROLLO
+# ============================================
+# URL base de la aplicación
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Modo de desarrollo
+NODE_ENV=development
+
+# ============================================
+# VARIABLES OPCIONALES
+# ============================================
+# Puerto del servidor (por defecto 3000)
+PORT=3000
+
+# Configuración de logging
+LOG_LEVEL=debug
