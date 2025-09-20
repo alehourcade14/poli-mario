@@ -189,7 +189,7 @@ export default function DetalleDenuncia() {
 
     try {
       // Si hay cambios pendientes y el usuario está editando, guardar primero
-      if (isEditing) {
+      if (isEditing) { 
         // Validar campos antes de guardar
         if (
           !formData.denunciante ||
