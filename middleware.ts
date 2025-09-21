@@ -17,13 +17,13 @@ export async function middleware(req: NextRequest) {
       const token = req.cookies.get('auth-token')?.value
 
       if (!token) {
+        console.log("❌ No se encontró token de autenticación, redirigiendo al login")
         return NextResponse.redirect(new URL("/", req.url))
       }
 
-      // Para desarrollo, simplemente verificar que existe el token
-      // En producción, deberías implementar una verificación más robusta
+      // En desarrollo, permitir acceso si hay token
       if (process.env.NODE_ENV === 'development') {
-        // En desarrollo, permitir acceso si hay token
+        console.log("✅ Token encontrado, permitiendo acceso en desarrollo")
         return res
       }
 
@@ -31,7 +31,7 @@ export async function middleware(req: NextRequest) {
       return res
 
     } catch (error) {
-      console.error("Error verificando autenticación:", error)
+      console.error("❌ Error verificando autenticación:", error)
       return NextResponse.redirect(new URL("/", req.url))
     }
   }

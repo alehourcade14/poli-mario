@@ -12,6 +12,12 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pg'],
   },
+  // Configuración de internacionalización
+  i18n: {
+    locales: ['es', 'en'],
+    defaultLocale: 'es',
+    localeDetection: false,
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push('pg-native')

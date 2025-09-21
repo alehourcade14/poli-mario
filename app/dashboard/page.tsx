@@ -124,7 +124,7 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Entregas Rodados</CardTitle>
+              <CardTitle className="text-sm font-medium">Nueva Entrega de Elementos/Rodados</CardTitle>
               <Car className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>

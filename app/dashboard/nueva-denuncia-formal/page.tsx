@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import MapSelector from "@/components/map-selector"
 import { FileText } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
+import AddressAutocomplete from "@/components/address-autocomplete"
 
 export default function NuevaDenunciaFormal() {
   const { user, loading: userLoading } = useCurrentUser()
@@ -330,8 +331,14 @@ export default function NuevaDenunciaFormal() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="domicilio">Domicilio</Label>
-                    <Input id="domicilio" name="domicilio" value={formData.domicilio} onChange={handleChange} />
+                    <AddressAutocomplete
+                      id="domicilio"
+                      label="Domicilio"
+                      value={formData.domicilio}
+                      onChange={(address) => setFormData((prev) => ({ ...prev, domicilio: address }))}
+                      placeholder="Ingrese su domicilio..."
+                      required
+                    />
                   </div>
 
                   <div className="space-y-2">

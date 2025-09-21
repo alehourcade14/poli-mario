@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { FileText } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
+import AddressAutocomplete from "@/components/address-autocomplete"
 
 export default function NuevaEntregaRodado() {
   const { user, loading: userLoading } = useCurrentUser()
@@ -25,6 +26,7 @@ export default function NuevaEntregaRodado() {
     dominio: "",
     nombreApellido: "",
     dni: "",
+    direccion: "",
     funcionarioActuante: "",
   })
   const [error, setError] = useState("")
@@ -78,7 +80,7 @@ export default function NuevaEntregaRodado() {
           propietario_apellido: formData.nombreApellido.split(' ').slice(1).join(' ') || '',
           propietario_dni: formData.dni,
           propietario_telefono: '',
-          propietario_direccion: '',
+          propietario_direccion: formData.direccion,
           tipo_vehiculo: formData.datosRodado.split(' ')[0] || 'Vehiculo',
           marca: '',
           modelo: '',
@@ -276,6 +278,16 @@ export default function NuevaEntregaRodado() {
                     placeholder="Ingrese el DNI"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <AddressAutocomplete
+                  id="direccion"
+                  label="Dirección del Propietario"
+                  value={formData.direccion}
+                  onChange={(address) => setFormData((prev) => ({ ...prev, direccion: address }))}
+                  placeholder="Ingrese la dirección del propietario..."
+                />
               </div>
 
               <div className="space-y-2">

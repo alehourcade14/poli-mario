@@ -28,6 +28,7 @@ export async function GET(request: Request) {
         u.rol,
         u.activo,
         u.created_at,
+        u.division,
         d.nombre as departamento_nombre
       FROM usuarios u
       LEFT JOIN departamentos d ON u.departamento_id = d.id
@@ -90,8 +91,8 @@ export async function POST(request: Request) {
 
     const result = await query(`
       INSERT INTO usuarios (
-        email, password_hash, nombre, apellido, rol, departamento_id, activo
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        email, password_hash, nombre, apellido, rol, departamento_id, division, activo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `, [
       data.email,
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
       data.apellido,
       data.rol,
       departamentoId,
+      data.division || null,
       data.activo !== false // Por defecto activo
     ])
 

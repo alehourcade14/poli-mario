@@ -87,7 +87,7 @@ export async function exportEntregaRodadoToPDF(entrega: any) {
     // Añadir encabezado
     pdf.setFontSize(titleFontSize)
     pdf.setFont("helvetica", "bold")
-    pdf.text("SISTEMA CENTRALIZADO DE DENUNCIAS", pageWidth / 2, yPosition, { align: "center" })
+    pdf.text("SISTEMA DE GESTION OPERATIVA", pageWidth / 2, yPosition, { align: "center" })
     yPosition += 8
 
     pdf.setFontSize(subtitleFontSize)
@@ -210,7 +210,7 @@ export async function exportEntregaRodadoToPDF(entrega: any) {
     pdf.setFontSize(smallFontSize)
     pdf.setFont("helvetica", "italic")
     pdf.text(
-      "Este documento fue generado automáticamente por el Sistema Centralizado de Denuncias.",
+      "Este documento fue generado automáticamente por el Sistema de Gestión Operativa.",
       pageWidth / 2,
       pdf.internal.pageSize.getHeight() - 15,
       { align: "center" },

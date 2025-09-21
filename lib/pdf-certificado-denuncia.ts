@@ -70,7 +70,7 @@ export async function exportCertificadoDenuncia(denuncia: any) {
         departamento: data.departamento || "N/A",
         fechaGeneracion: new Date().toISOString(), // Fecha actual de generación
         fechaCertificado: new Date().toLocaleDateString(), // Fecha del certificado
-        sistema: "Sistema Centralizado de Denuncias - Policía La Rioja",
+        sistema: "Sistema de Gestión Operativa - Policía La Rioja",
       }
 
       // Convertir a JSON string
@@ -432,7 +432,7 @@ export async function exportCertificadoDenuncia(denuncia: any) {
       pdf.setFontSize(smallFontSize)
       pdf.setFont("times", "italic")
       pdf.text(
-        "Este certificado fue generado automáticamente por el Sistema Centralizado de Denuncias.",
+        "Este certificado fue generado automáticamente por el Sistema de Gestión Operativa.",
         pageWidth / 2,
         pageHeight - 15,
         { align: "center" },

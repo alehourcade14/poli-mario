@@ -144,6 +144,7 @@ export default function OperadorPage() {
                 alt="Logo Policía Investigaciones"
                 width={40}
                 height={40}
+                priority
                 className="mr-3"
               />
               <div>

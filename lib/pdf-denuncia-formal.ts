@@ -212,7 +212,7 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       pdf.setFontSize(smallFontSize)
       pdf.setFont("times", "italic")
       pdf.text(
-        "Este documento fue generado automáticamente por el Sistema Centralizado de Denuncias.",
+        "Este documento fue generado automáticamente por el Sistema de Gestión Operativa.",
         pageWidth / 2,
         pageHeight - 15,
         { align: "center" },

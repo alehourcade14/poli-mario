@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { GoogleMap, Marker, useJsApiLoader, MarkerClusterer } from "@react-google-maps/api"
+import { GoogleMap, Marker, MarkerClusterer } from "@react-google-maps/api"
+import { useGoogleMaps } from "@/hooks/use-google-maps"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
@@ -25,10 +26,7 @@ interface GeneralMapProps {
 }
 
 export default function GeneralMap({ denuncias }: GeneralMapProps) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: ["visualization", "maps"],
-  })
+  const { isLoaded, loadError } = useGoogleMaps()
 
   const [filtroTipo, setFiltroTipo] = useState<string>("todos")
   const [filtroDepartamento, setFiltroDepartamento] = useState<string>("todos")

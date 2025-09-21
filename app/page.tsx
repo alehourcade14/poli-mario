@@ -31,6 +31,7 @@ export default function Home() {
               alt="Logo Policía Investigaciones"
               width={120}
               height={120}
+              priority
               className="object-contain"
             />
           </div>

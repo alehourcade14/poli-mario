@@ -335,7 +335,7 @@ export async function generatePDF(element: HTMLElement, data: PDFData): Promise<
       pdf.setDrawColor(200, 200, 200)
       pdf.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15)
 
-      pdf.text("Sistema Centralizado de Denuncias - Policía de La Rioja", pageWidth / 2, pageHeight - 10, {
+      pdf.text("Sistema de Gestión Operativa - Policía de La Rioja", pageWidth / 2, pageHeight - 10, {
         align: "center",
       })
       pdf.text(`Página ${i} de ${pageCount}`, pageWidth - margin, pageHeight - 5, {

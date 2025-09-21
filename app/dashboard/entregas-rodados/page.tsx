@@ -120,7 +120,7 @@ export default function EntregasRodados() {
     <DashboardLayout user={user}>
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Entregas de Rodados</h1>
+          <h1 className="text-2xl font-bold">Entrega de Elementos/Rodados</h1>
           <Button onClick={() => router.push("/dashboard/nueva-entrega-rodado")}>
             <Plus className="mr-2 h-4 w-4" />
             Nueva Entrega de Elementos/Rodados
@@ -129,7 +129,7 @@ export default function EntregasRodados() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Listado de Entregas de Rodados</CardTitle>
+            <CardTitle>Entrega de Elementos/Rodados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-4">
@@ -183,7 +183,7 @@ export default function EntregasRodados() {
                               <FileDown className="h-4 w-4 mr-2" />
                               PDF
                             </Button>
-                            {user?.role === "admin" && (
+                            {user?.rol === "admin" && (
                               <>
                                 <Button
                                   variant="ghost"

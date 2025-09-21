@@ -8,8 +8,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sistema Centralizado de Denuncias",
-  description: "Sistema Centralizado de Denuncias para la Policía de La Rioja",
+  title: "Sistema de Gestión Operativa",
+  description: "Sistema de Gestión Operativa para la Policía de La Rioja",
     generator: 'v0.app'
 }
 

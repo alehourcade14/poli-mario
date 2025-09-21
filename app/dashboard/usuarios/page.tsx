@@ -34,6 +34,7 @@ export default function Usuarios() {
     nombre: "",
     apellido: "",
     departamento_nombre: "",
+    division: "",
     rol: "user",
   })
   const [error, setError] = useState("")
@@ -132,6 +133,7 @@ export default function Usuarios() {
         nombre: "",
         apellido: "",
         departamento_nombre: "",
+        division: "",
         rol: "user",
       })
 
@@ -311,11 +313,30 @@ export default function Usuarios() {
                         <SelectValue placeholder="Seleccionar departamento" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ComisarÃ­a Central">ComisarÃ­a Central</SelectItem>
-                        <SelectItem value="ComisarÃ­a Norte">ComisarÃ­a Norte</SelectItem>
-                        <SelectItem value="ComisarÃ­a Sur">ComisarÃ­a Sur</SelectItem>
-                        <SelectItem value="ComisarÃ­a Este">ComisarÃ­a Este</SelectItem>
-                        <SelectItem value="ComisarÃ­a Oeste">ComisarÃ­a Oeste</SelectItem>
+                        <SelectItem value="Departamento Cibercrimen">Departamento Cibercrimen</SelectItem>
+                        <SelectItem value="Departamento Sustracción de Automotores">Departamento Sustracción de Automotores</SelectItem>
+                        <SelectItem value="Departamento Delitos Contra la Propiedad">Departamento Delitos Contra la Propiedad</SelectItem>
+                        <SelectItem value="Departamento Delitos contra las Personas">Departamento Delitos contra las Personas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="division" className="text-right">
+                      División
+                    </Label>
+                    <Select
+                      value={formData.division}
+                      onValueChange={(value) => handleSelectChange("division", value)}
+                    >
+                      <SelectTrigger id="division" className="col-span-3">
+                        <SelectValue placeholder="Seleccionar división" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="División Delito Económico">División Delito Económico</SelectItem>
+                        <SelectItem value="División de Sustracción de Automotores">División de Sustracción de Automotores</SelectItem>
+                        <SelectItem value="División de Homicidio">División de Homicidio</SelectItem>
+                        <SelectItem value="División de Robos y Hurtos">División de Robos y Hurtos</SelectItem>
+                        <SelectItem value="División de Seguridad Personal">División de Seguridad Personal</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -390,6 +411,7 @@ export default function Usuarios() {
                   <TableHead>Email</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Departamento</TableHead>
+                  <TableHead>División</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -401,6 +423,7 @@ export default function Usuarios() {
                     <TableCell>{u.email}</TableCell>
                     <TableCell>{u.nombre} {u.apellido}</TableCell>
                     <TableCell>{u.departamento_nombre || "-"}</TableCell>
+                    <TableCell>{u.division || "-"}</TableCell>
                     <TableCell>
                       {u.rol === "admin" || u.rol === "administrador" ? (
                         <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Administrador</Badge>

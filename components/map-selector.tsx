@@ -4,7 +4,8 @@ import type React from "react"
 import type { google } from "googlemaps"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api"
+import { GoogleMap, Marker } from "@react-google-maps/api"
+import { useGoogleMaps } from "@/hooks/use-google-maps"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -33,10 +34,7 @@ export default function MapSelector({
   onAddressChange,
   isOptional = true,
 }: MapSelectorProps) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: ["visualization", "maps"],
-  })
+  const { isLoaded, loadError } = useGoogleMaps()
 
   const [map, setMap] = useState<google.maps.Map | null>(null)
   const [markerPosition, setMarkerPosition] = useState<google.maps.LatLngLiteral | null>(() => {
@@ -262,6 +260,10 @@ export default function MapSelector({
 
   // Si hay un error al cargar la API de Google Maps, mostrar un formulario alternativo
   if (loadError) {
+    const isApiKeyError = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === "tu-google-maps-api-key-aqui" || 
+                         !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+                         process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === ""
+    
     return (
       <Card>
         <CardContent className="p-4">
@@ -269,8 +271,19 @@ export default function MapSelector({
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Error al cargar el mapa</AlertTitle>
             <AlertDescription>
-              No se pudo cargar el mapa de Google. Por favor, ingrese las coordenadas manualmente o contacte al
-              administrador.
+              {isApiKeyError ? (
+                <div>
+                  <p className="mb-2">Google Maps API no está configurada correctamente.</p>
+                  <p className="mb-2">Para solucionarlo:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-sm">
+                    <li>Ejecuta el script: <code className="bg-gray-100 px-1 rounded">setup-google-maps.bat</code></li>
+                    <li>O configura manualmente la variable NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en .env.local</li>
+                    <li>Reinicia el servidor de desarrollo</li>
+                  </ol>
+                </div>
+              ) : (
+                "No se pudo cargar el mapa de Google. Por favor, ingrese las coordenadas manualmente o contacte al administrador."
+              )}
             </AlertDescription>
           </Alert>
 

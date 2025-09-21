@@ -39,12 +39,12 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
     { name: "Usuarios", href: "/dashboard/usuarios", icon: Users },
     { name: "Estadísticas", href: "/dashboard/estadisticas", icon: BarChart3 },
     { name: "Cámaras", href: "/dashboard/camaras", icon: Camera },
-    { name: "Entregas Rodados", href: "/dashboard/entregas-rodados", icon: Car },
+    { name: "Nueva Entrega de Elementos/Rodados", href: "/dashboard/entregas-rodados", icon: Car },
   ]
 
   // Filtrar menú según rol
   const filteredMenuItems =
-    user?.role === "operador"
+    user?.rol === "operador"
       ? menuItems.filter((item) => !["Usuarios", "Estadísticas"].includes(item.name))
       : menuItems
 

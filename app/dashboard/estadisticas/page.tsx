@@ -7,10 +7,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BarChart, PieChart, LineChart, DoughnutChart, RadarChart } from "@/components/charts"
-import { FileText, AlertTriangle, CheckCircle, Clock, FileDown, Loader2 } from "lucide-react"
+import { FileText, AlertTriangle, CheckCircle, Clock, FileDown, Loader2, Plus, Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { generatePDF } from "@/lib/pdf-generator"
 import { useToast } from "@/components/ui/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import HeatMap from "@/components/heat-map"
 import GeneralMap from "@/components/general-map"
 import CamarasMap from "@/components/camaras-map"
@@ -28,6 +40,21 @@ export default function Estadisticas() {
   const [tipoGraficoTasa, setTipoGraficoTasa] = useState<"bar" | "pie" | "doughnut">("bar")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [activeTab, setActiveTab] = useState("estado")
+  const [isAddCameraDialogOpen, setIsAddCameraDialogOpen] = useState(false)
+  const [cameraForm, setCameraForm] = useState({
+    nombre: "",
+    ubicacion: "",
+    direccion: "",
+    tipo: "",
+    estado: "Activa",
+    resolucion: "",
+    visionNocturna: false,
+    audio: false,
+    grabacion: false,
+    lat: "",
+    lng: "",
+    observaciones: ""
+  })
   const statsContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const router = useRouter()
@@ -209,6 +236,60 @@ export default function Estadisticas() {
       })
     } finally {
       setIsGeneratingPDF(false)
+    }
+  }
+
+  const handleCameraFormChange = (field: string, value: any) => {
+    setCameraForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleAddCamera = async () => {
+    try {
+      // Validar campos obligatorios
+      if (!cameraForm.nombre || !cameraForm.ubicacion || !cameraForm.direccion || !cameraForm.tipo) {
+        toast({
+          title: "Error",
+          description: "Por favor completa todos los campos obligatorios",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Aquí iría la lógica para guardar la cámara
+      console.log("Datos de la cámara:", cameraForm)
+      
+      toast({
+        title: "Cámara agregada",
+        description: "La cámara se ha agregado correctamente",
+      })
+
+      // Limpiar formulario y cerrar diálogo
+      setCameraForm({
+        nombre: "",
+        ubicacion: "",
+        direccion: "",
+        tipo: "",
+        estado: "Activa",
+        resolucion: "",
+        visionNocturna: false,
+        audio: false,
+        grabacion: false,
+        lat: "",
+        lng: "",
+        observaciones: ""
+      })
+      setIsAddCameraDialogOpen(false)
+
+    } catch (error) {
+      console.error("Error al agregar cámara:", error)
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al agregar la cámara",
+        variant: "destructive"
+      })
     }
   }
 
@@ -578,7 +659,187 @@ export default function Estadisticas() {
               <GeneralMap denuncias={denuncias} />
             </TabsContent>
             <TabsContent value="camaras">
-              <CamarasMap user={user} />
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Cámaras de Seguridad</CardTitle>
+                    <CardDescription>Gestión y monitoreo de cámaras de seguridad</CardDescription>
+                  </div>
+                  <Dialog open={isAddCameraDialogOpen} onOpenChange={setIsAddCameraDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Agregar Cámaras
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center">
+                          <Camera className="mr-2 h-5 w-5" />
+                          Agregar Nueva Cámara
+                        </DialogTitle>
+                        <DialogDescription>
+                          Complete la información de la nueva cámara de seguridad
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="nombre">Nombre de la Cámara *</Label>
+                            <Input
+                              id="nombre"
+                              value={cameraForm.nombre}
+                              onChange={(e) => handleCameraFormChange("nombre", e.target.value)}
+                              placeholder="Ej: Cámara 001 - Plaza Principal"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="ubicacion">Ubicación *</Label>
+                            <Input
+                              id="ubicacion"
+                              value={cameraForm.ubicacion}
+                              onChange={(e) => handleCameraFormChange("ubicacion", e.target.value)}
+                              placeholder="Ej: Plaza Principal"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="direccion">Dirección *</Label>
+                          <Input
+                            id="direccion"
+                            value={cameraForm.direccion}
+                            onChange={(e) => handleCameraFormChange("direccion", e.target.value)}
+                            placeholder="Ej: Av. San Martín 123, La Rioja"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="tipo">Tipo de Cámara *</Label>
+                            <Select value={cameraForm.tipo} onValueChange={(value) => handleCameraFormChange("tipo", value)}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar tipo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fija">Cámara Fija</SelectItem>
+                                <SelectItem value="ptz">Cámara PTZ</SelectItem>
+                                <SelectItem value="dome">Cámara Dome</SelectItem>
+                                <SelectItem value="bullet">Cámara Bullet</SelectItem>
+                                <SelectItem value="covert">Cámara Oculta</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="estado">Estado</Label>
+                            <Select value={cameraForm.estado} onValueChange={(value) => handleCameraFormChange("estado", value)}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Activa">Activa</SelectItem>
+                                <SelectItem value="Inactiva">Inactiva</SelectItem>
+                                <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
+                                <SelectItem value="Fuera de Servicio">Fuera de Servicio</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="resolucion">Resolución</Label>
+                            <Select value={cameraForm.resolucion} onValueChange={(value) => handleCameraFormChange("resolucion", value)}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar resolución" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="720p">720p HD</SelectItem>
+                                <SelectItem value="1080p">1080p Full HD</SelectItem>
+                                <SelectItem value="4K">4K Ultra HD</SelectItem>
+                                <SelectItem value="8K">8K Ultra HD</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Coordenadas GPS</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Input
+                                placeholder="Latitud"
+                                value={cameraForm.lat}
+                                onChange={(e) => handleCameraFormChange("lat", e.target.value)}
+                              />
+                              <Input
+                                placeholder="Longitud"
+                                value={cameraForm.lng}
+                                onChange={(e) => handleCameraFormChange("lng", e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <Label>Características</Label>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="visionNocturna"
+                                checked={cameraForm.visionNocturna}
+                                onChange={(e) => handleCameraFormChange("visionNocturna", e.target.checked)}
+                                className="rounded"
+                              />
+                              <Label htmlFor="visionNocturna" className="text-sm">Visión Nocturna</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="audio"
+                                checked={cameraForm.audio}
+                                onChange={(e) => handleCameraFormChange("audio", e.target.checked)}
+                                className="rounded"
+                              />
+                              <Label htmlFor="audio" className="text-sm">Audio</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="grabacion"
+                                checked={cameraForm.grabacion}
+                                onChange={(e) => handleCameraFormChange("grabacion", e.target.checked)}
+                                className="rounded"
+                              />
+                              <Label htmlFor="grabacion" className="text-sm">Grabación</Label>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="observaciones">Observaciones</Label>
+                          <Textarea
+                            id="observaciones"
+                            value={cameraForm.observaciones}
+                            onChange={(e) => handleCameraFormChange("observaciones", e.target.value)}
+                            placeholder="Información adicional sobre la cámara..."
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddCameraDialogOpen(false)}>
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleAddCamera}>
+                          Agregar Cámara
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  <CamarasMap user={user} />
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
 

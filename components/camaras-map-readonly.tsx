@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { GoogleMap, Marker, useJsApiLoader, InfoWindow } from "@react-google-maps/api"
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api"
+import { useGoogleMaps } from "@/hooks/use-google-maps"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
@@ -62,10 +63,7 @@ interface Camara {
 }
 
 export default function CamarasMapReadonly({ user }: CamaraMapReadonlyProps) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: ["visualization", "maps"],
-  })
+  const { isLoaded, loadError } = useGoogleMaps()
 
   const [camaras, setCamaras] = useState<Camara[]>([])
   const [filteredCamaras, setFilteredCamaras] = useState<Camara[]>([])

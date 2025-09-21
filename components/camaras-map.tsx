@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect, useCallback } from "react"
-import { GoogleMap, Marker, useJsApiLoader, InfoWindow } from "@react-google-maps/api"
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api"
+import { useGoogleMaps } from "@/hooks/use-google-maps"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
@@ -97,10 +98,7 @@ interface KMZCamara {
 }
 
 export default function CamarasMap({ user }: CamaraMapProps) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries: ["visualization", "maps"],
-  })
+  const { isLoaded, loadError } = useGoogleMaps()
 
   const [camaras, setCamaras] = useState<Camara[]>([])
   const [filteredCamaras, setFilteredCamaras] = useState<Camara[]>([])
@@ -539,7 +537,7 @@ export default function CamarasMap({ user }: CamaraMapProps) {
             <CardDescription>Monitoreo y gestión de cámaras de seguridad en La Rioja Capital</CardDescription>
           </div>
           <div className="flex gap-2">
-            {(user?.role === "admin" || user?.role === "usuario" || user?.role === "operador") && (
+            {(user?.rol === "admin" || user?.rol === "usuario" || user?.rol === "operador") && (
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -744,7 +742,7 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                 </DialogContent>
               </Dialog>
             )}
-            {(user?.role === "admin" || user?.role === "usuario" || user?.role === "operador") && (
+            {(user?.rol === "admin" || user?.rol === "usuario" || user?.rol === "operador") && (
               <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline">
@@ -1026,7 +1024,7 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                     <strong>Coordenadas:</strong> {selectedCamara.lat.toFixed(6)}, {selectedCamara.lng.toFixed(6)}
                   </div>
 
-                  {user?.role === "admin" && (
+                  {user?.rol === "admin" && (
                     <div className="flex gap-2 mt-4">
                       <Button size="sm" onClick={() => handleEdit(selectedCamara)}>
                         <Edit className="h-4 w-4 mr-2" />

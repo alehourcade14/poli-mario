@@ -24,15 +24,21 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=tu_password_aqui
 
 # ============================================
-# GOOGLE MAPS API
+# GOOGLE MAPS PLATFORM API
 # ============================================
 # Para obtener la API key:
 # 1. Ve a https://console.cloud.google.com
 # 2. Crea un proyecto o selecciona uno existente
-# 3. Habilita 'Maps JavaScript API'
+# 3. Habilita las siguientes APIs:
+#    - Maps JavaScript API (para mapas interactivos)
+#    - Places API (para autocompletado de direcciones)
+#    - Geocoding API (para conversión de coordenadas a direcciones)
 # 4. Ve a 'Credentials' y crea una API Key
 # 5. Configura las restricciones de dominio para seguridad
+# 6. Configura las restricciones de API para usar solo las APIs necesarias
 
+# IMPORTANTE: Reemplaza con tu API Key real de Google Maps
+# Obtén tu API Key en: https://console.cloud.google.com
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=tu-google-maps-api-key-aqui
 
 # ============================================
