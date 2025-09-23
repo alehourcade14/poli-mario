@@ -1,23 +1,33 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import DashboardLayout from "@/components/dashboard-layout"
 import CamarasMap from "@/components/camaras-map"
+import { useCurrentUser } from "@/hooks/use-current-user"
 
 export default function CamarasPage() {
-  const [user, setUser] = useState<any>(null)
+  const { user, loading: userLoading } = useCurrentUser()
   const router = useRouter()
 
   useEffect(() => {
     // Verificar autenticación
-    const currentUser = localStorage.getItem("currentUser")
-    if (!currentUser) {
+    if (!userLoading && !user) {
       router.push("/")
       return
     }
-    setUser(JSON.parse(currentUser))
-  }, [router])
+  }, [user, userLoading, router])
+
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!user) return null
 

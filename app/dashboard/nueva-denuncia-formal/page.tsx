@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import MapSelector from "@/components/map-selector"
-import { FileText } from "lucide-react"
+import { FileText, Download } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import AddressAutocomplete from "@/components/address-autocomplete"
 
@@ -187,6 +187,187 @@ export default function NuevaDenunciaFormal() {
       setTimeout(() => {
         router.push("/dashboard/denuncias")
       }, 3000)
+    } catch (err) {
+      setError("Error al guardar la denuncia")
+      console.error(err)
+    }
+  }
+
+  const validateForm = () => {
+    // Validar campos obligatorios
+    if (
+      !formData.denunciante ||
+      !formData.dni ||
+      !formData.nacionalidad ||
+      !formData.estadoCivil ||
+      !formData.instruccion ||
+      !formData.edad ||
+      !formData.profesion ||
+      !formData.domicilio ||
+      !formData.barrio ||
+      !formData.sexo ||
+      !formData.tipo ||
+      !formData.departamento ||
+      !formData.division ||
+      !formData.descripcion ||
+      !formData.fechaHecho ||
+      !formData.horaHecho ||
+      !formData.barrioHecho ||
+      !formData.numExpediente
+    ) {
+      setError("Todos los campos son obligatorios (excepto la ubicación)")
+      return false
+    }
+    return true
+  }
+
+  const handleRegistrarDenuncia = async () => {
+    setError("")
+    setSuccess(false)
+
+    if (!validateForm()) {
+      return
+    }
+
+    try {
+      // Crear nueva denuncia formal en la base de datos
+      const response = await fetch('/api/denuncias', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          numero_expediente: formData.numExpediente || `EXP-FORMAL-${Date.now()}`,
+          denunciante_nombre: formData.denunciante.split(' ')[0] || formData.denunciante,
+          denunciante_apellido: formData.denunciante.split(' ').slice(1).join(' ') || '',
+          denunciante_dni: formData.dni,
+          denunciante_telefono: '',
+          denunciante_email: '',
+          denunciante_direccion: formData.domicilio,
+          fecha_hecho: formData.fechaHecho,
+          hora_hecho: formData.horaHecho,
+          lugar_hecho: formData.barrioHecho,
+          departamento_hecho: formData.barrio,
+          latitud: formData.ubicacion?.lat || null,
+          longitud: formData.ubicacion?.lng || null,
+          descripcion: formData.descripcion,
+          tipo_delito: formData.tipo,
+          // Campos adicionales para denuncia formal
+          nacionalidad: formData.nacionalidad,
+          estado_civil: formData.estadoCivil,
+          instruccion: formData.instruccion,
+          edad: formData.edad,
+          sexo: formData.sexo,
+          profesion: formData.profesion,
+          tipo_formulario: "formal"
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al crear denuncia formal')
+      }
+
+      const nuevaDenuncia = await response.json()
+      setSuccess(true)
+
+      // Limpiar formulario
+      setFormData({
+        denunciante: "",
+        dni: "",
+        nacionalidad: "Argentina",
+        estadoCivil: "",
+        instruccion: "",
+        edad: "",
+        profesion: "",
+        domicilio: "",
+        barrio: "",
+        sexo: "",
+        tipo: "",
+        departamento: "",
+        division: "",
+        descripcion: "",
+        estado: "Consulta",
+        fechaDenuncia: new Date().toISOString().split("T")[0],
+        horaDenuncia: new Date().toTimeString().slice(0, 5),
+        fechaHecho: new Date().toISOString().split("T")[0],
+        horaHecho: new Date().toTimeString().slice(0, 5),
+        barrioHecho: "",
+        numExpediente: "",
+        ubicacion: null,
+        direccion: "",
+      })
+
+      // Redireccionar después de 3 segundos
+      setTimeout(() => {
+        router.push("/dashboard/denuncias")
+      }, 3000)
+    } catch (err) {
+      setError("Error al guardar la denuncia")
+      console.error(err)
+    }
+  }
+
+  const handleGenerarPDF = async () => {
+    setError("")
+    setSuccess(false)
+
+    if (!validateForm()) {
+      return
+    }
+
+    try {
+      // Crear nueva denuncia formal en la base de datos
+      const response = await fetch('/api/denuncias', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          numero_expediente: formData.numExpediente || `EXP-FORMAL-${Date.now()}`,
+          denunciante_nombre: formData.denunciante.split(' ')[0] || formData.denunciante,
+          denunciante_apellido: formData.denunciante.split(' ').slice(1).join(' ') || '',
+          denunciante_dni: formData.dni,
+          denunciante_telefono: '',
+          denunciante_email: '',
+          denunciante_direccion: formData.domicilio,
+          fecha_hecho: formData.fechaHecho,
+          hora_hecho: formData.horaHecho,
+          lugar_hecho: formData.barrioHecho,
+          departamento_hecho: formData.barrio,
+          latitud: formData.ubicacion?.lat || null,
+          longitud: formData.ubicacion?.lng || null,
+          descripcion: formData.descripcion,
+          tipo_delito: formData.tipo,
+          // Campos adicionales para denuncia formal
+          nacionalidad: formData.nacionalidad,
+          estado_civil: formData.estadoCivil,
+          instruccion: formData.instruccion,
+          edad: formData.edad,
+          sexo: formData.sexo,
+          profesion: formData.profesion,
+          tipo_formulario: "formal"
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al crear denuncia formal')
+      }
+
+      const nuevaDenuncia = await response.json()
+
+      // Generar PDF con formato formal
+      try {
+        const { exportDenunciaFormalToPDF } = await import("@/lib/pdf-denuncia-formal")
+        await exportDenunciaFormalToPDF(nuevaDenuncia)
+        setSuccess(true)
+      } catch (pdfError) {
+        console.error("Error al generar PDF:", pdfError)
+        setError("Error al generar el PDF")
+      }
     } catch (err) {
       setError("Error al guardar la denuncia")
       console.error(err)
@@ -515,13 +696,17 @@ export default function NuevaDenunciaFormal() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
+            <CardFooter className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => router.push("/dashboard")}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={success}>
+              <Button type="button" onClick={handleRegistrarDenuncia} disabled={success}>
                 <FileText className="mr-2 h-4 w-4" />
-                Registrar y Generar Denuncia
+                Registrar Denuncia
+              </Button>
+              <Button type="button" onClick={handleGenerarPDF} disabled={success}>
+                <Download className="mr-2 h-4 w-4" />
+                Generar Denuncia PDF
               </Button>
             </CardFooter>
           </form>

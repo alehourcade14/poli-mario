@@ -79,7 +79,7 @@ export default function DetalleDenuncia() {
           denunciante_nombre: data.denunciante_nombre || "",
           denunciante_apellido: data.denunciante_apellido || "",
           denunciante_dni: data.denunciante_dni || "",
-          tipo_delito: data.tipo_delito || "",
+          tipo_delito: data.tipo_delito_nombre || data.tipo_delito || "",
           departamento_nombre: data.departamento_nombre || "",
           division: data.division || "",
           descripcion: data.descripcion || "",

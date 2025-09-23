@@ -99,3 +99,4 @@ echo 4. Haz clic en "Agregar Cámaras"
 echo 5. Completa el formulario y prueba la funcionalidad
 echo.
 pause
+

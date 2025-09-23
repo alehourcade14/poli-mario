@@ -21,10 +21,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         d.*,
         de.nombre as departamento_nombre,
         es.nombre as estado_nombre,
+        td.nombre as tipo_delito_nombre,
         u.nombre || ' ' || u.apellido as creador_nombre
       FROM denuncias d
       LEFT JOIN departamentos de ON d.departamento_id = de.id
       LEFT JOIN estados_denuncias es ON d.estado_id = es.id
+      LEFT JOIN tipos_delitos td ON d.tipo_delito_id = td.id
       LEFT JOIN usuarios u ON d.usuario_id = u.id
       WHERE d.id = $1
     `, [params.id])
