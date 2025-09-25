@@ -129,9 +129,9 @@ export default function Estadisticas() {
     }
 
     // Calcular estadísticas
-    const pendientes = filteredDenuncias.filter((d) => d.estado === "Consulta").length
+    const pendientes = filteredDenuncias.filter((d) => d.estado === "Pendiente").length
     const enProceso = filteredDenuncias.filter((d) => d.estado === "En Proceso").length
-    const resueltas = filteredDenuncias.filter((d) => d.estado === "Resuelta").length
+    const resueltas = filteredDenuncias.filter((d) => d.estado === "Completada").length
 
     // Agrupar por departamento
     const porDepartamento: Record<string, number> = {}

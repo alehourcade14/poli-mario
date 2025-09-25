@@ -52,7 +52,7 @@ export default function OperadorPage() {
     setUser(parsedUser)
 
     // Verificar si es operador
-    if (parsedUser.role !== "operador") {
+    if (parsedUser.rol !== "operador") {
       router.push("/dashboard")
       return
     }
@@ -130,7 +130,7 @@ export default function OperadorPage() {
     }
   }
 
-  if (!user || user.role !== "operador") return null
+  if (!user || user.rol !== "operador") return null
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">

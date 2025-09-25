@@ -11,7 +11,11 @@ import { Search, FileText, FilePlus, Edit, Trash2, Award } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useCurrentUser } from "@/hooks/use-current-user"
 
-export default function DenunciasTable() {
+interface DenunciasTableProps {
+  onDenunciasUpdate?: () => void
+}
+
+export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProps) {
   const [denuncias, setDenuncias] = useState<any[]>([])
   const [filteredDenuncias, setFilteredDenuncias] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -28,19 +32,35 @@ export default function DenunciasTable() {
     const fetchDenuncias = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/denuncias', {
-          credentials: 'include'
+        console.log("🔍 Cargando denuncias para la tabla...")
+        
+        const [denunciasResponse, denunciasFormalesResponse] = await Promise.all([
+          fetch('/api/denuncias', { credentials: 'include' }),
+          fetch('/api/denuncias-formales', { credentials: 'include' })
+        ])
+
+        const denuncias = denunciasResponse.ok ? await denunciasResponse.json() : []
+        const denunciasFormales = denunciasFormalesResponse.ok ? await denunciasFormalesResponse.json() : []
+
+        console.log("📊 Denuncias cargadas:", {
+          denuncias: denuncias.length,
+          denunciasFormales: denunciasFormales.length
         })
 
-        if (!response.ok) {
-          throw new Error('Error al cargar denuncias')
+        // Combinar ambas tablas de denuncias
+        const todasLasDenuncias = [...denuncias, ...denunciasFormales]
+        
+        setDenuncias(todasLasDenuncias)
+        setFilteredDenuncias(todasLasDenuncias)
+        
+        console.log("✅ Total de denuncias en tabla:", todasLasDenuncias.length)
+        
+        // Notificar que las denuncias se actualizaron
+        if (onDenunciasUpdate) {
+          onDenunciasUpdate()
         }
-
-        const data = await response.json()
-        setDenuncias(data)
-        setFilteredDenuncias(data)
       } catch (error) {
-        console.error('Error fetching denuncias:', error)
+        console.error('❌ Error fetching denuncias:', error)
         toast({
           title: "Error",
           description: "Error al cargar las denuncias",

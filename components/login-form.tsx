@@ -51,6 +51,9 @@ export default function LoginForm() {
       }
 
       if (data.success) {
+        // Guardar usuario en localStorage
+        localStorage.setItem("currentUser", JSON.stringify(data.user))
+        
         // Manejar "Recordame" (mantener en localStorage)
         if (rememberMe) {
           localStorage.setItem("rememberedEmail", email)

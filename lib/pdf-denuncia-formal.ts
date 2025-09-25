@@ -55,6 +55,53 @@ const numeroATexto = (num: number): string => {
 
 export async function exportDenunciaFormalToPDF(denuncia: any) {
   try {
+    // Validar que la denuncia tenga los datos mínimos necesarios
+    if (!denuncia) {
+      throw new Error("No se proporcionaron datos de la denuncia")
+    }
+
+    // Log para debugging
+    console.log("📋 Datos de denuncia recibidos para PDF:", {
+      // Datos personales
+      denunciante_nombre: denuncia.denunciante_nombre,
+      denunciante_apellido: denuncia.denunciante_apellido,
+      denunciante: denuncia.denunciante,
+      dni: denuncia.denunciante_dni || denuncia.dni,
+      nacionalidad: denuncia.denunciante_nacionalidad || denuncia.nacionalidad,
+      estadoCivil: denuncia.estadoCivil,
+      instruccion: denuncia.instruccion,
+      edad: denuncia.edad,
+      sexo: denuncia.sexo,
+      profesion: denuncia.denunciante_profesion || denuncia.profesion,
+      domicilio: denuncia.denunciante_direccion || denuncia.domicilio,
+      barrio: denuncia.barrio,
+      
+      // Datos de la denuncia
+      numero_expediente: denuncia.numero_expediente,
+      tipo_delito: denuncia.tipo_delito,
+      departamento: denuncia.departamento,
+      division: denuncia.division,
+      fecha_hecho: denuncia.fecha_hecho,
+      hora_hecho: denuncia.hora_hecho,
+      lugar_hecho: denuncia.lugar_hecho,
+      departamento_hecho: denuncia.departamento_hecho,
+      descripcion: denuncia.descripcion,
+      observaciones: denuncia.observaciones,
+      
+      // Ubicación
+      latitud: denuncia.latitud,
+      longitud: denuncia.longitud
+    })
+
+    // Función para obtener valores seguros
+    const getSafeValue = (value: any, defaultValue: string = "No especificado"): string => {
+      if (value === null || value === undefined || value === "") {
+        return defaultValue
+      }
+      const stringValue = String(value).trim()
+      return stringValue || defaultValue
+    }
+
     // Usar fecha y hora actual del sistema para la generación del documento
     const fechaActualSistema = new Date()
     const fechaDenunciaTexto = fechaATexto(fechaActualSistema.toISOString())
@@ -111,15 +158,17 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     pdf.setFontSize(subtitleFontSize)
     pdf.text("DIRECCIÓN GENERAL DE INVESTIGACIONES", pageWidth / 2, yPosition, { align: "center" })
     yPosition += 6
-    pdf.text(`${denuncia.departamento.toUpperCase()}`, pageWidth / 2, yPosition, { align: "center" })
+    pdf.text(`${getSafeValue(denuncia.departamento, 'La Rioja').toUpperCase()}`, pageWidth / 2, yPosition, { align: "center" })
     yPosition += 6
-    pdf.text(`${denuncia.division.toUpperCase()}`, pageWidth / 2, yPosition, { align: "center" })
+    pdf.text(`${getSafeValue(denuncia.division, 'División').toUpperCase()}`, pageWidth / 2, yPosition, { align: "center" })
     yPosition += 15
 
     // Título de la denuncia
     pdf.setFontSize(normalFontSize)
     pdf.setFont("times", "bold")
-    pdf.text(`DENUNCIA FORMULADA POR EL CIUDADANO: ${denuncia.denunciante.toUpperCase()}`, pageWidth / 2, yPosition, {
+    const nombreCompletoTitulo = `${getSafeValue(denuncia.denunciante_nombre)} ${getSafeValue(denuncia.denunciante_apellido)}`.trim()
+    const nombreFinalTitulo = nombreCompletoTitulo || getSafeValue(denuncia.denunciante, 'No especificado')
+    pdf.text(`DENUNCIA FORMULADA POR EL CIUDADANO: ${nombreFinalTitulo.toUpperCase()}`, pageWidth / 2, yPosition, {
       align: "center",
     })
     yPosition += 15
@@ -133,16 +182,66 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     pdf.setFont("times", "normal")
     pdf.setFontSize(normalFontSize)
 
-    // Construir el texto de la denuncia
-    const sexoTexto = denuncia.sexo === "Masculino" ? "Masculino" : "Femenino"
+    // Construir el texto de la denuncia con validaciones
+    const sexoTexto = getSafeValue(denuncia.sexo) === "Masculino" ? "Masculino" : (getSafeValue(denuncia.sexo) === "Femenino" ? "Femenino" : "No especificado")
     const estadoCivilTexto =
-      denuncia.estadoCivil === "Soltero/a"
-        ? denuncia.sexo === "Masculino"
+      getSafeValue(denuncia.estadoCivil) === "Soltero/a"
+        ? getSafeValue(denuncia.sexo) === "Masculino"
           ? "Soltero"
           : "Soltera"
-        : denuncia.estadoCivil
+        : getSafeValue(denuncia.estadoCivil)
 
-    const textoDenuncia = `En la ciudad de La Rioja, capital de la provincia del mismo nombre a los ${fechaDenunciaTexto}, siendo las horas ${horaActualSistema}, comparece por ante la Oficina de Sumarios Judiciales de ésta ${denuncia.division}, dependiente de la Dirección General de Investigaciones, una persona de sexo ${sexoTexto}, manifestando deseos de formular una denuncia, motivo por el cual se lo notifica de los términos y contenidos del Art. 245 del Código Penal Argentino, que reprime al que denunciare falsamente un hecho, enterado de ello, seguidamente es interrogada por su apellido y demás circunstancias personales dijo llamarse: ${denuncia.denunciante.toUpperCase()}, de nacionalidad ${denuncia.nacionalidad}, de estado civil ${estadoCivilTexto}, ${denuncia.instruccion}, de ${denuncia.edad} años de edad, D.N.I. Nº ${denuncia.dni}, profesión ${denuncia.profesion}, con domicilio en ${denuncia.domicilio} del barrio ${denuncia.barrio} de esta Ciudad Capital, quien invitada al acto seguidamente DENUNCIA: ${denuncia.descripcion} Que es todo por lo que se da por finalizado el acto previa lectura y ratificación, firmando al pie de la presente de conformidad por ante mi Funcionario Policial que CERTIFICO.`
+    // Obtener el nombre completo del denunciante de forma segura
+    const nombreCompleto = `${getSafeValue(denuncia.denunciante_nombre)} ${getSafeValue(denuncia.denunciante_apellido)}`.trim()
+    const nombreCompletoFinal = (nombreCompleto && 
+                                 nombreCompleto !== 'No especificado No especificado' && 
+                                 nombreCompleto !== 'No especificado' && 
+                                 nombreCompleto.length > 0) ? nombreCompleto : 'No especificado'
+    
+    // Asegurar que el nombre final sea una cadena válida
+    const nombreFinalSeguro = (nombreCompletoFinal && typeof nombreCompletoFinal === 'string') ? nombreCompletoFinal : 'No especificado'
+
+    // Información del hecho - definir fuera del try para que esté disponible en toda la función
+    const fechaHechoTexto = denuncia.fecha_hecho ? fechaATexto(denuncia.fecha_hecho) : 'No especificada'
+    const horaHechoTexto = getSafeValue(denuncia.hora_hecho, 'No especificada')
+    const lugarHechoTexto = getSafeValue(denuncia.lugar_hecho, 'No especificado')
+    const tipoDelitoTexto = getSafeValue(denuncia.tipo_delito, 'No especificado')
+    const departamentoHechoTexto = getSafeValue(denuncia.departamento_hecho, 'No especificado')
+    
+    // Generar texto de la denuncia con manejo seguro de errores
+    let textoDenuncia = ""
+    try {
+      console.log("🔍 Generando texto de denuncia...")
+      console.log("📋 nombreFinalSeguro:", nombreFinalSeguro)
+      console.log("📋 sexoTexto:", sexoTexto)
+      console.log("📋 estadoCivilTexto:", estadoCivilTexto)
+      
+      // Extraer información adicional de las observaciones si está disponible
+      const observaciones = getSafeValue(denuncia.observaciones, '')
+      let edadExtraida = getSafeValue(denuncia.edad, 'No especificado')
+      let sexoExtraido = sexoTexto
+      let instruccionExtraida = getSafeValue(denuncia.instruccion, 'No especificado')
+      
+      // Si las observaciones contienen información estructurada, extraerla
+      if (observaciones.includes('Edad:') && observaciones.includes('Sexo:') && observaciones.includes('Instrucción:')) {
+        const edadMatch = observaciones.match(/Edad:\s*([^,]+)/)
+        const sexoMatch = observaciones.match(/Sexo:\s*([^,]+)/)
+        const instruccionMatch = observaciones.match(/Instrucción:\s*([^,]+)/)
+        
+        if (edadMatch) edadExtraida = edadMatch[1].trim()
+        if (sexoMatch) sexoExtraido = sexoMatch[1].trim()
+        if (instruccionMatch) instruccionExtraida = instruccionMatch[1].trim()
+      }
+
+      // Las variables de información del hecho ya están definidas arriba
+
+      textoDenuncia = `En la ciudad de La Rioja, capital de la provincia del mismo nombre a los ${fechaDenunciaTexto}, siendo las horas ${horaActualSistema}, comparece por ante la Oficina de Sumarios Judiciales de ésta ${getSafeValue(denuncia.division, 'División')}, dependiente de la Dirección General de Investigaciones, una persona de sexo ${sexoExtraido}, manifestando deseos de formular una denuncia, motivo por el cual se lo notifica de los términos y contenidos del Art. 245 del Código Penal Argentino, que reprime al que denunciare falsamente un hecho, enterado de ello, seguidamente es interrogada por su apellido y demás circunstancias personales dijo llamarse: ${nombreFinalSeguro.toUpperCase()}, de nacionalidad ${getSafeValue(denuncia.denunciante_nacionalidad || denuncia.nacionalidad, 'Argentina')}, de estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, ${getSafeValue(denuncia.denunciante_profesion || denuncia.profesion)}, de ${edadExtraida} años de edad, D.N.I. Nº ${getSafeValue(denuncia.denunciante_dni || denuncia.dni)}, profesión ${getSafeValue(denuncia.denunciante_profesion || denuncia.profesion)}, con domicilio en ${getSafeValue(denuncia.denunciante_direccion || denuncia.domicilio)} del barrio ${getSafeValue(denuncia.barrio)} de esta Ciudad Capital, quien invitada al acto seguidamente DENUNCIA: Que el día ${fechaHechoTexto}, siendo las horas ${horaHechoTexto}, en ${lugarHechoTexto}, departamento de ${departamentoHechoTexto}, ocurrió un hecho del tipo ${tipoDelitoTexto}, siendo los detalles del mismo los siguientes: ${getSafeValue(denuncia.descripcion)} Que es todo por lo que se da por finalizado el acto previa lectura y ratificación, firmando al pie de la presente de conformidad por ante mi Funcionario Policial que CERTIFICO.`
+      
+      console.log("✅ Texto de denuncia generado exitosamente")
+    } catch (textError) {
+      console.error("❌ Error al generar texto de denuncia:", textError)
+      throw new Error(`Error al generar texto de denuncia: ${textError.message}`)
+    }
 
     // Aplicar justificación perfecta al texto principal
     const justifiedLines = justifyText(textoDenuncia, contentWidth, normalFontSize, pdf)
@@ -175,8 +274,62 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       yPosition = renderJustifiedText(currentPageLines, marginSide, yPosition, contentWidth, pdf)
     }
 
+    // Espacio para información adicional
+    yPosition += 20
+    if (yPosition > pageHeight - 150) {
+      pdf.addPage()
+      yPosition = marginTop + 20
+    }
+
+    // Información adicional del formulario
+    pdf.setFont("times", "bold")
+    pdf.setFontSize(subtitleFontSize)
+    pdf.text("INFORMACIÓN ADICIONAL:", marginSide, yPosition)
+    yPosition += 10
+
+    pdf.setFont("times", "normal")
+    pdf.setFontSize(normalFontSize)
+
+    // Crear tabla de información adicional
+    const infoItems = [
+      { label: "Número de Expediente:", value: getSafeValue(denuncia.numero_expediente, 'No especificado') },
+      { label: "Fecha de Denuncia:", value: fechaDenunciaTexto },
+      { label: "Hora de Denuncia:", value: horaActualSistema },
+      { label: "Fecha del Hecho:", value: fechaHechoTexto },
+      { label: "Hora del Hecho:", value: horaHechoTexto },
+      { label: "Lugar del Hecho:", value: lugarHechoTexto },
+      { label: "Departamento del Hecho:", value: departamentoHechoTexto },
+      { label: "Tipo de Delito:", value: tipoDelitoTexto },
+      { label: "División:", value: getSafeValue(denuncia.division, 'No especificado') },
+      { label: "Departamento:", value: getSafeValue(denuncia.departamento, 'No especificado') }
+    ]
+
+    // Mostrar información en dos columnas
+    const col1X = marginSide
+    const col2X = marginSide + contentWidth / 2 + 10
+    let currentCol = 1
+    let colY = yPosition
+
+    infoItems.forEach((item, index) => {
+      const x = currentCol === 1 ? col1X : col2X
+      
+      pdf.setFont("times", "bold")
+      pdf.text(item.label, x, colY)
+      pdf.setFont("times", "normal")
+      pdf.text(item.value, x + 60, colY)
+      
+      colY += 6
+      
+      // Cambiar a segunda columna después de la mitad de los elementos
+      if (index === Math.floor(infoItems.length / 2) - 1) {
+        currentCol = 2
+        colY = yPosition
+      }
+    })
+
+    yPosition = colY + 20
+
     // Espacio para firmas
-    yPosition += 30
     if (yPosition > pageHeight - 100) {
       pdf.addPage()
       yPosition = marginTop + 20

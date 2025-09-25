@@ -38,19 +38,26 @@ export default function AddressAutocomplete({
   const [error, setError] = useState<string | null>(null)
   const [service, setService] = useState<google.maps.places.AutocompleteService | null>(null)
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null)
+  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
   // Inicializar servicios de Google Places
   useEffect(() => {
-    if (isLoaded && window.google) {
-      const autocompleteService = new window.google.maps.places.AutocompleteService()
-      const placesService = new window.google.maps.places.PlacesService(
-        document.createElement("div")
-      )
-      setService(autocompleteService)
-      setPlacesService(placesService)
+    if (isLoaded && window.google && window.google.maps && window.google.maps.places) {
+      try {
+        const autocompleteService = new window.google.maps.places.AutocompleteService()
+        const placesService = new window.google.maps.places.PlacesService(
+          document.createElement("div")
+        )
+        setService(autocompleteService)
+        setPlacesService(placesService)
+        setError(null) // Limpiar errores previos
+      } catch (err) {
+        console.error("Error inicializando servicios de Google Places:", err)
+        setError("Error al inicializar servicios de mapas")
+      }
     }
   }, [isLoaded])
 
@@ -63,25 +70,46 @@ export default function AddressAutocomplete({
         return
       }
 
+      // Verificar que la API esté disponible
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        setError("API de Google Maps no disponible")
+        return
+      }
+
       setIsLoading(true)
       setError(null)
 
       try {
-        const request: google.maps.places.AutocompleteRequest = {
+        const request = {
           input: input,
-          componentRestrictions: { country: "ar" }, // Restringir a Argentina
           types: ["address"],
+          componentRestrictions: { country: "ar" }
         }
 
-        const result = await service.getPlacePredictions(request)
-        setSuggestions(result.predictions || [])
-        setShowSuggestions(true)
+        // Usar callback en lugar de async/await para mejor compatibilidad
+        service.getPlacePredictions(request, (predictions, status) => {
+          setIsLoading(false)
+          
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+            setSuggestions(predictions)
+            setShowSuggestions(true)
+            setError(null)
+          } else {
+            console.warn("Error en getPlacePredictions:", status)
+            setSuggestions([])
+            setShowSuggestions(false)
+            if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+              setError(null) // No es un error, simplemente no hay resultados
+            } else {
+              setError("No se pudieron obtener sugerencias de direcciones")
+            }
+          }
+        })
       } catch (err: any) {
         console.error("Error obteniendo sugerencias:", err)
         setError("Error al obtener sugerencias de direcciones")
         setSuggestions([])
         setShowSuggestions(false)
-      } finally {
         setIsLoading(false)
       }
     },
@@ -93,12 +121,17 @@ export default function AddressAutocomplete({
     const inputValue = e.target.value
     onChange(inputValue)
 
+    // Limpiar timeout anterior
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+
     // Debounce para evitar demasiadas llamadas a la API
-    const timeoutId = setTimeout(() => {
+    const newTimeoutId = setTimeout(() => {
       getSuggestions(inputValue)
     }, 300)
-
-    return () => clearTimeout(timeoutId)
+    
+    setTimeoutId(newTimeoutId)
   }
 
   // Función para seleccionar una sugerencia
@@ -159,8 +192,14 @@ export default function AddressAutocomplete({
     }
 
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      // Limpiar timeout al desmontar
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [timeoutId])
 
   // Manejar teclas especiales
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -169,27 +208,34 @@ export default function AddressAutocomplete({
     }
   }
 
-  // Si hay error al cargar la API, mostrar input normal
-  if (loadError) {
+  // Si hay error al cargar la API o no hay API key, mostrar input normal
+  if (loadError || 
+      !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === 'tu-google-maps-api-key-aqui' ||
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === '' ||
+      error === "API de Google Maps no disponible" ||
+      error === "Error al inicializar servicios de mapas") {
     return (
       <div className="space-y-2">
         {label && <Label htmlFor={id}>{label}</Label>}
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Servicio de autocompletado no disponible. Puede ingresar la dirección manualmente.
-          </AlertDescription>
-        </Alert>
-        <Input
-          ref={inputRef}
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          required={required}
-          disabled={disabled}
-          className={className}
-        />
+        <div className="relative">
+          <Input
+            ref={inputRef}
+            id={id}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            required={required}
+            disabled={disabled}
+            className={className}
+          />
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Ingrese la dirección manualmente
+        </p>
       </div>
     )
   }

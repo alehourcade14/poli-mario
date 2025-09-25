@@ -71,3 +71,4 @@ echo 3. Haz clic en una denuncia existente
 echo 4. Verifica que los campos se muestran correctamente
 echo.
 pause
+

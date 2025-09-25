@@ -6,7 +6,7 @@ import DashboardLayout from "@/components/dashboard-layout"
 import DenunciasTable from "@/components/denuncias-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Users, BarChart2, AlertTriangle, Car, Plus } from "lucide-react"
+import { FileText, Users, BarChart2, AlertTriangle, Car, Plus, RefreshCw } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
 
 export default function Dashboard() {
@@ -18,36 +18,61 @@ export default function Dashboard() {
     enProceso: 0,
     totalEntregasRodados: 0,
   })
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const router = useRouter()
+
+  // Función para cargar estadísticas desde la base de datos
+  const loadStats = async () => {
+    try {
+      setIsRefreshing(true)
+      console.log("🔍 Cargando estadísticas del dashboard...")
+      
+      const [denunciasResponse, denunciasFormalesResponse, entregasResponse] = await Promise.all([
+        fetch('/api/denuncias', { credentials: 'include' }),
+        fetch('/api/denuncias-formales', { credentials: 'include' }),
+        fetch('/api/entregas-rodados', { credentials: 'include' })
+      ])
+
+      const denuncias = denunciasResponse.ok ? await denunciasResponse.json() : []
+      const denunciasFormales = denunciasFormalesResponse.ok ? await denunciasFormalesResponse.json() : []
+      const entregasRodados = entregasResponse.ok ? await entregasResponse.json() : []
+
+      console.log("📊 Datos recibidos:", {
+        denuncias: denuncias.length,
+        denunciasFormales: denunciasFormales.length,
+        entregasRodados: entregasRodados.length
+      })
+
+      // Combinar ambas tablas de denuncias
+      const todasLasDenuncias = [...denuncias, ...denunciasFormales]
+
+      setStats({
+        totalDenuncias: todasLasDenuncias.length,
+        pendientes: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Pendiente").length,
+        resueltas: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Completada").length,
+        enProceso: todasLasDenuncias.filter((d: any) => d.estado_nombre === "En Proceso").length,
+        totalEntregasRodados: entregasRodados.length,
+      })
+
+      console.log("✅ Estadísticas actualizadas:", {
+        totalDenuncias: todasLasDenuncias.length,
+        pendientes: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Pendiente").length,
+        resueltas: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Completada").length,
+        enProceso: todasLasDenuncias.filter((d: any) => d.estado_nombre === "En Proceso").length,
+        totalEntregasRodados: entregasRodados.length,
+      })
+    } catch (error) {
+      console.error('❌ Error loading stats:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   useEffect(() => {
     // Verificar autenticación
     if (!userLoading && !user) {
       router.push("/")
       return
-    }
-
-    // Cargar estadísticas desde la base de datos
-    const loadStats = async () => {
-      try {
-        const [denunciasResponse, entregasResponse] = await Promise.all([
-          fetch('/api/denuncias', { credentials: 'include' }),
-          fetch('/api/entregas-rodados', { credentials: 'include' })
-        ])
-
-        const denuncias = denunciasResponse.ok ? await denunciasResponse.json() : []
-        const entregasRodados = entregasResponse.ok ? await entregasResponse.json() : []
-
-        setStats({
-          totalDenuncias: denuncias.length,
-          pendientes: denuncias.filter((d: any) => d.estado_nombre === "Consulta").length,
-          resueltas: denuncias.filter((d: any) => d.estado_nombre === "Resuelta").length,
-          enProceso: denuncias.filter((d: any) => d.estado_nombre === "En Proceso").length,
-          totalEntregasRodados: entregasRodados.length,
-        })
-      } catch (error) {
-        console.error('Error loading stats:', error)
-      }
     }
 
     if (user) {
@@ -74,6 +99,15 @@ export default function Dashboard() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Panel de Control</h1>
           <div className="flex gap-2">
+            <Button 
+              onClick={loadStats} 
+              variant="outline" 
+              disabled={isRefreshing}
+              className="mr-2"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
             <Button onClick={() => router.push("/dashboard/nueva-denuncia-formal")}>
               <Plus className="mr-2 h-4 w-4" />
               Nueva Denuncia
@@ -139,7 +173,7 @@ export default function Dashboard() {
             <CardDescription>Lista de las últimas denuncias registradas en el sistema</CardDescription>
           </CardHeader>
           <CardContent>
-            <DenunciasTable />
+            <DenunciasTable onDenunciasUpdate={loadStats} />
           </CardContent>
         </Card>
       </div>

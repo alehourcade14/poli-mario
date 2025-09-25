@@ -121,3 +121,4 @@ echo 2. Limpiar caché del navegador (Ctrl+F5)
 echo 3. Verificar la consola del navegador para errores
 echo.
 pause
+

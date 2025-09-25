@@ -73,3 +73,4 @@ echo Si quieres probar la API directamente:
 echo Ejecuta: test-api-denuncia.bat
 echo.
 pause
+

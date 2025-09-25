@@ -67,3 +67,4 @@ echo 2. Ve a /dashboard/denuncias
 echo 3. Verifica que solo aparece el botón "Nueva Denuncia"
 echo.
 pause
+

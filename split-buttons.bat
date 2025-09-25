@@ -103,3 +103,4 @@ echo 3. Completa el formulario
 echo 4. Prueba ambos botones por separado
 echo.
 pause
+
