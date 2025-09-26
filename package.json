@@ -76,6 +76,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22",
     "@types/pg": "^8.11.10",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "postcss": "^8.5",

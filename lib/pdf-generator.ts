@@ -324,7 +324,7 @@ export async function generatePDF(element: HTMLElement, data: PDFData): Promise<
     yPosition += 5
 
     // Añadir pie de página a todas las páginas
-    const pageCount = pdf.internal.getNumberOfPages()
+    const pageCount = pdf.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i)
       pdf.setFontSize(smallFontSize)
@@ -353,6 +353,6 @@ export async function generatePDF(element: HTMLElement, data: PDFData): Promise<
     console.log(`📊 Gráficos incluidos: ${chartsAdded}`)
   } catch (error) {
     console.error("❌ Error crítico al generar el PDF:", error)
-    throw new Error(`Error al generar el informe PDF: ${error.message || "Error desconocido"}`)
+    throw new Error(`Error al generar el informe PDF: ${error instanceof Error ? error.message : "Error desconocido"}`)
   }
 }

@@ -426,7 +426,7 @@ export async function exportCertificadoDenuncia(denuncia: any) {
     }
 
     // Añadir pie de página con márgenes apropiados
-    const pageCount = pdf.internal.getNumberOfPages()
+    const pageCount = pdf.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i)
       pdf.setFontSize(smallFontSize)

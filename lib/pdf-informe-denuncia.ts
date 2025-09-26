@@ -179,7 +179,7 @@ export async function exportInformeDenuncia(denuncia: any, funcionarioEditor?: a
     })
 
     // Agregar número de página
-    const pageCount = pdf.internal.getNumberOfPages()
+    const pageCount = pdf.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i)
       pdf.setFontSize(8)

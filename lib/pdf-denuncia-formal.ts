@@ -240,7 +240,7 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       console.log("✅ Texto de denuncia generado exitosamente")
     } catch (textError) {
       console.error("❌ Error al generar texto de denuncia:", textError)
-      throw new Error(`Error al generar texto de denuncia: ${textError.message}`)
+      throw new Error(`Error al generar texto de denuncia: ${textError instanceof Error ? textError.message : String(textError)}`)
     }
 
     // Aplicar justificación perfecta al texto principal
@@ -359,7 +359,7 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     pdf.text(`${denuncia.creadorDepartamento}`, funcionarioX, firmaY + 15)
 
     // Añadir pie de página con márgenes apropiados
-    const pageCount = pdf.internal.getNumberOfPages()
+    const pageCount = pdf.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i)
       pdf.setFontSize(smallFontSize)
