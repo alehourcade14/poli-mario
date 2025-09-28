@@ -13,9 +13,9 @@ export default function Dashboard() {
   const { user, loading: userLoading } = useCurrentUser()
   const [stats, setStats] = useState({
     totalDenuncias: 0,
-    pendientes: 0,
-    resueltas: 0,
+    consulta: 0,
     enProceso: 0,
+    resueltas: 0,
     totalEntregasRodados: 0,
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -48,17 +48,17 @@ export default function Dashboard() {
 
       setStats({
         totalDenuncias: todasLasDenuncias.length,
-        pendientes: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Pendiente").length,
-        resueltas: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Completada").length,
+        consulta: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Consulta").length,
         enProceso: todasLasDenuncias.filter((d: any) => d.estado_nombre === "En Proceso").length,
+        resueltas: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Resuelta").length,
         totalEntregasRodados: entregasRodados.length,
       })
 
       console.log("✅ Estadísticas actualizadas:", {
         totalDenuncias: todasLasDenuncias.length,
-        pendientes: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Pendiente").length,
-        resueltas: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Completada").length,
+        consulta: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Consulta").length,
         enProceso: todasLasDenuncias.filter((d: any) => d.estado_nombre === "En Proceso").length,
+        resueltas: todasLasDenuncias.filter((d: any) => d.estado_nombre === "Resuelta").length,
         totalEntregasRodados: entregasRodados.length,
       })
     } catch (error) {
@@ -135,7 +135,7 @@ export default function Dashboard() {
               <AlertTriangle className="h-4 w-4 text-amber-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendientes}</div>
+              <div className="text-2xl font-bold">{stats.consulta}</div>
             </CardContent>
           </Card>
           <Card>

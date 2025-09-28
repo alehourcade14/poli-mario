@@ -35,6 +35,7 @@ export async function GET(request: Request) {
         d.descripcion,
         d.tipo_delito_id,
         d.estado_id,
+        d.departamento_id,
         d.fecha_denuncia,
         d.hora_denuncia,
         d.observaciones,
@@ -43,10 +44,12 @@ export async function GET(request: Request) {
         d.updated_at,
         de.nombre as departamento_nombre,
         es.nombre as estado_nombre,
+        td.nombre as tipo_delito,
         u.nombre || ' ' || u.apellido as creador_nombre
       FROM denuncias d
       LEFT JOIN departamentos de ON d.departamento_id = de.id
       LEFT JOIN estados_denuncias es ON d.estado_id = es.id
+      LEFT JOIN tipos_delitos td ON d.tipo_delito_id = td.id
       LEFT JOIN usuarios u ON d.usuario_id = u.id
       ORDER BY d.created_at DESC
     `)
@@ -80,9 +83,10 @@ export async function POST(request: Request) {
 
     const data = await request.json()
     
-    // Obtener estado por defecto (Pendiente)
-    const estadoResult = await query('SELECT id FROM estados_denuncias WHERE nombre = $1', ['Pendiente'])
-    const estadoId = estadoResult.rows[0]?.id || 1 // ID del estado Pendiente (asumiendo que es el primer estado)
+    // Obtener estado seleccionado en el formulario o usar Consulta por defecto
+    const estadoSeleccionado = data.estado || 'Consulta'
+    const estadoResult = await query('SELECT id FROM estados_denuncias WHERE nombre = $1', [estadoSeleccionado])
+    const estadoId = estadoResult.rows[0]?.id || 1
 
     // Obtener departamento si existe
     let departamentoId = null

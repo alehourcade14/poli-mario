@@ -53,10 +53,6 @@ export default function MapSelector({
   const [isGeocodingLoading, setIsGeocodingLoading] = useState(false)
   const [geocodingAvailable, setGeocodingAvailable] = useState(true)
   const [geocodingError, setGeocodingError] = useState<string | null>(null)
-  const [manualCoordinates, setManualCoordinates] = useState({
-    lat: initialLocation?.lat || defaultCenter.lat,
-    lng: initialLocation?.lng || defaultCenter.lng,
-  })
 
   const markerRef = useRef<google.maps.Marker | null>(null)
 
@@ -120,7 +116,6 @@ export default function MapSelector({
           lng: e.latLng.lng(),
         }
         setMarkerPosition(newPosition)
-        setManualCoordinates(newPosition)
         onLocationSelect(newPosition)
 
         // Solo intentar geocodificación si está disponible
@@ -145,7 +140,6 @@ export default function MapSelector({
             lng: position.coords.longitude,
           }
           setMarkerPosition(currentPosition)
-          setManualCoordinates(currentPosition)
           onLocationSelect(currentPosition)
 
           // Solo intentar geocodificación si está disponible
@@ -198,7 +192,6 @@ export default function MapSelector({
             lng: lng,
           }
           setMarkerPosition(newPosition)
-          setManualCoordinates(newPosition)
           onLocationSelect(newPosition)
         }
 
@@ -221,35 +214,11 @@ export default function MapSelector({
     setMap(null)
   }, [])
 
-  // Función para actualizar manualmente las coordenadas
-  const handleCoordinateChange = (e: React.ChangeEvent<HTMLInputElement>, field: "lat" | "lng") => {
-    const value = Number.parseFloat(e.target.value)
-    if (!isNaN(value)) {
-      const newCoordinates = { ...manualCoordinates, [field]: value }
-      setManualCoordinates(newCoordinates)
-    }
-  }
-
-  const applyManualCoordinates = () => {
-    setMarkerPosition(manualCoordinates)
-    onLocationSelect(manualCoordinates)
-
-    // Solo intentar geocodificación si está disponible
-    if (geocodingAvailable) {
-      reverseGeocode(manualCoordinates.lat, manualCoordinates.lng)
-    }
-
-    if (map) {
-      map.panTo(manualCoordinates)
-      map.setZoom(15)
-    }
-  }
 
   // Efecto para inicializar el marcador con la ubicación inicial
   useEffect(() => {
     if (initialLocation && !markerPosition) {
       setMarkerPosition(initialLocation)
-      setManualCoordinates(initialLocation)
 
       // Solo intentar geocodificación si está disponible
       if (geocodingAvailable) {
@@ -288,37 +257,8 @@ export default function MapSelector({
           </Alert>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="latitude" className="text-sm font-medium">
-                  Latitud
-                </label>
-                <input
-                  id="latitude"
-                  type="number"
-                  step="0.000001"
-                  value={manualCoordinates.lat}
-                  onChange={(e) => handleCoordinateChange(e, "lat")}
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="longitude" className="text-sm font-medium">
-                  Longitud
-                </label>
-                <input
-                  id="longitude"
-                  type="number"
-                  step="0.000001"
-                  value={manualCoordinates.lng}
-                  onChange={(e) => handleCoordinateChange(e, "lng")}
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
-            </div>
 
             <div className="flex gap-2">
-              <Button onClick={applyManualCoordinates}>Guardar Coordenadas</Button>
               <Button variant="outline" onClick={getCurrentLocation} disabled={isLocating}>
                 {isLocating ? (
                   <>
@@ -444,38 +384,6 @@ export default function MapSelector({
           )}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label htmlFor="latitude" className="text-sm font-medium">
-              Latitud
-            </label>
-            <input
-              id="latitude"
-              type="number"
-              step="0.000001"
-              value={manualCoordinates.lat}
-              onChange={(e) => handleCoordinateChange(e, "lat")}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="longitude" className="text-sm font-medium">
-              Longitud
-            </label>
-            <input
-              id="longitude"
-              type="number"
-              step="0.000001"
-              value={manualCoordinates.lng}
-              onChange={(e) => handleCoordinateChange(e, "lng")}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-        </div>
-
-        <Button className="mt-2" onClick={applyManualCoordinates}>
-          Aplicar Coordenadas
-        </Button>
 
         {markerPosition && (
           <div className="mt-4 space-y-2">

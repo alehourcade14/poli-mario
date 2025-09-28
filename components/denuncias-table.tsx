@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Search, FileText, FilePlus, Edit, Trash2, Award } from "lucide-react"
+import { Search, FileText, FilePlus, Edit, Trash2, Award, CheckCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useCurrentUser } from "@/hooks/use-current-user"
 
@@ -98,8 +98,8 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
       filtered = filtered.filter((d) => d.departamento_nombre === departamento)
     }
 
-    if (division && division !== "todas") {
-      filtered = filtered.filter((d) => d.division === division)
+    if (division && division !== "todos") {
+      filtered = filtered.filter((d) => d.departamento_nombre === division)
     }
 
     setFilteredDenuncias(filtered)
@@ -201,6 +201,59 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
     }
   }
 
+  const handleChangeStatusToResuelta = async (denuncia: any) => {
+    if (window.confirm("¿Está seguro de que desea marcar esta denuncia como RESUELTA? Esta acción cambiará el estado de la denuncia.")) {
+      try {
+        // Determinar si es una denuncia formal o regular
+        const isFormal = denuncia.denunciante_nacionalidad !== undefined
+        const endpoint = isFormal ? `/api/denuncias-formales/${denuncia.id}` : `/api/denuncias/${denuncia.id}`
+        
+        const response = await fetch(endpoint, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            estado: 'Resuelta'
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Error al actualizar el estado de la denuncia')
+        }
+
+        // Actualizar la denuncia en el estado local
+        const updatedDenuncias = denuncias.map(d => 
+          d.id === denuncia.id 
+            ? { ...d, estado_nombre: 'Resuelta', estado: 'Resuelta' }
+            : d
+        )
+        
+        setDenuncias(updatedDenuncias)
+        setFilteredDenuncias(updatedDenuncias)
+
+        toast({
+          title: "Estado actualizado",
+          description: "La denuncia ha sido marcada como RESUELTA.",
+          variant: "default",
+        })
+
+        // Notificar que las denuncias se actualizaron
+        if (onDenunciasUpdate) {
+          onDenunciasUpdate()
+        }
+      } catch (error) {
+        console.error('Error al cambiar estado:', error)
+        toast({
+          title: "Error",
+          description: "Error al cambiar el estado de la denuncia",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4">
@@ -247,15 +300,15 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
           </Select>
           <Select value={division} onValueChange={setDivision}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="División" />
+              <SelectValue placeholder="Departamento" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todas">Todas</SelectItem>
-              <SelectItem value="División Delito Económico">Delito Económico</SelectItem>
-              <SelectItem value="División de Sustracción de Automotores">Sustracción de Automotores</SelectItem>
-              <SelectItem value="División de Homicidio">Homicidio</SelectItem>
-              <SelectItem value="División de Robos y Hurtos">Robos y Hurtos</SelectItem>
-              <SelectItem value="División de Seguridad Personal">Seguridad Personal</SelectItem>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="Departamento Cibercrimen">Departamento Cibercrimen</SelectItem>
+              <SelectItem value="Departamento Sustracción de Automotores">Departamento Sustracción de Automotores</SelectItem>
+              <SelectItem value="Departamento Delitos Contra la Propiedad">Departamento Delitos Contra la Propiedad</SelectItem>
+              <SelectItem value="Departamento Delitos contra las Personas">Departamento Delitos contra las Personas</SelectItem>
+              <SelectItem value="Departamento Seguridad Personal">Departamento Seguridad Personal</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -269,7 +322,7 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
               <TableHead>Denunciante</TableHead>
               <TableHead className="hidden md:table-cell">DNI</TableHead>
               <TableHead className="hidden md:table-cell">Tipo</TableHead>
-              <TableHead className="hidden md:table-cell">División</TableHead>
+              <TableHead className="hidden md:table-cell">Departamento</TableHead>
               <TableHead className="hidden md:table-cell">Fecha</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -288,7 +341,7 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{denuncia.denunciante_dni || "-"}</TableCell>
                   <TableCell className="hidden md:table-cell">{denuncia.tipo_delito || "-"}</TableCell>
-                  <TableCell className="hidden md:table-cell">{denuncia.division || "-"}</TableCell>
+                  <TableCell className="hidden md:table-cell">{denuncia.departamento_nombre || "-"}</TableCell>
                   <TableCell className="hidden md:table-cell">
                     {denuncia.created_at ? new Date(denuncia.created_at).toLocaleDateString() : "-"}
                   </TableCell>
@@ -321,7 +374,19 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
                         <Award className="h-4 w-4 mr-2" />
                         {isGeneratingPDF ? "Generando..." : "Certificado"}
                       </Button>
-                      {currentUser?.role === "admin" && (
+                      {(denuncia.estado_nombre !== 'Resuelta' && denuncia.estado !== 'Resuelta') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleChangeStatusToResuelta(denuncia)}
+                          title="Marcar como Resuelta"
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Resolver
+                        </Button>
+                      )}
+                      {currentUser?.rol === "admin" && (
                         <>
                           <Button
                             variant="ghost"

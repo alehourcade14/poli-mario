@@ -39,37 +39,52 @@ export default function HeatMap({ denuncias }: HeatMapProps) {
   useEffect(() => {
     if (!denuncias.length || !isLoaded) return
 
-    // Extraer tipos de delitos únicos
-    const tipos = Array.from(new Set(denuncias.map((d) => d.tipo)))
+    console.log("🗺️ HeatMap - Denuncias recibidas:", denuncias.length)
+    console.log("🗺️ HeatMap - Primeras 3 denuncias:", denuncias.slice(0, 3))
+    console.log("🗺️ HeatMap - Campos de coordenadas en primeras 3:", denuncias.slice(0, 3).map(d => ({ 
+      id: d.id, 
+      latitud: d.latitud, 
+      longitud: d.longitud, 
+      ubicacion: d.ubicacion 
+    })))
+
+    // Extraer tipos de delitos únicos usando el campo correcto de la API
+    const tipos = Array.from(new Set(denuncias.map((d) => d.tipo_delito || d.tipo || 'Sin especificar')))
     setTipoDelitos(tipos)
 
-    // Extraer departamentos únicos
-    const deptos = Array.from(new Set(denuncias.map((d) => d.departamento)))
+    // Extraer departamentos únicos usando el campo correcto de la API
+    const deptos = Array.from(new Set(denuncias.map((d) => d.departamento_nombre || d.departamento || 'Sin departamento')))
     setDepartamentos(deptos)
+
+    console.log("🗺️ HeatMap - Tipos encontrados:", tipos)
+    console.log("🗺️ HeatMap - Departamentos encontrados:", deptos)
 
     // Filtrar denuncias según los criterios seleccionados
     let filteredDenuncias = [...denuncias]
 
     if (filtroTipo !== "todos") {
-      filteredDenuncias = filteredDenuncias.filter((d) => d.tipo === filtroTipo)
+      filteredDenuncias = filteredDenuncias.filter((d) => (d.tipo_delito || d.tipo) === filtroTipo)
     }
 
     if (filtroDepartamento !== "todos") {
-      filteredDenuncias = filteredDenuncias.filter((d) => d.departamento === filtroDepartamento)
+      filteredDenuncias = filteredDenuncias.filter((d) => (d.departamento_nombre || d.departamento) === filtroDepartamento)
     }
 
     if (filtroEstado !== "todos") {
-      filteredDenuncias = filteredDenuncias.filter((d) => d.estado === filtroEstado)
+      filteredDenuncias = filteredDenuncias.filter((d) => (d.estado_nombre || d.estado) === filtroEstado)
     }
 
-    // Crear datos para el mapa de calor
-    const heatmapPoints = filteredDenuncias
-      .filter((d) => d.ubicacion && d.ubicacion.lat && d.ubicacion.lng)
-      .map((d) => {
-        // Usar la API de Google Maps cargada en window
-        return new window.google.maps.LatLng(d.ubicacion.lat, d.ubicacion.lng)
-      })
+    // Crear datos para el mapa de calor usando latitud y longitud de la API
+    const denunciasConUbicacion = filteredDenuncias.filter((d) => d.latitud && d.longitud && !isNaN(d.latitud) && !isNaN(d.longitud))
+    console.log("🗺️ HeatMap - Denuncias con ubicación:", denunciasConUbicacion.length)
+    console.log("🗺️ HeatMap - Primeras 3 denuncias con coordenadas:", denunciasConUbicacion.slice(0, 3).map(d => ({ id: d.id, lat: d.latitud, lng: d.longitud })))
+    
+    const heatmapPoints = denunciasConUbicacion.map((d) => {
+      // Usar la API de Google Maps cargada en window
+      return new window.google.maps.LatLng(parseFloat(d.latitud), parseFloat(d.longitud))
+    })
 
+    console.log("🗺️ HeatMap - Puntos de calor generados:", heatmapPoints.length)
     setHeatmapData(heatmapPoints)
   }, [denuncias, filtroTipo, filtroDepartamento, filtroEstado, isLoaded])
 
@@ -204,7 +219,12 @@ export default function HeatMap({ denuncias }: HeatMapProps) {
           {isLoaded && heatmapData.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="bg-white dark:bg-gray-800 p-4 rounded-md shadow-md">
-                <p className="text-center">No hay datos de ubicación disponibles para los filtros seleccionados.</p>
+                <p className="text-center">
+                  {denuncias.length === 0 
+                    ? "No hay denuncias cargadas." 
+                    : `No hay denuncias con coordenadas para los filtros seleccionados. Total de denuncias: ${denuncias.length}`
+                  }
+                </p>
               </div>
             </div>
           )}

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         de.nombre as departamento_nombre
       FROM camaras c
       LEFT JOIN departamentos de ON c.departamento_id = de.id
-      ORDER BY c.ubicacion
+      ORDER BY c.nombre
     `)
 
     return new NextResponse(JSON.stringify(result.rows), {
@@ -63,20 +63,18 @@ export async function POST(request: Request) {
 
     const result = await query(`
       INSERT INTO camaras (
-        numero_camara, tipo_camara, ubicacion, direccion, latitud, longitud,
-        estado, fecha_instalacion, ultima_revision, descripcion, departamento_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        nombre, tipo_camara, direccion, latitud, longitud,
+        estado, fecha_instalacion, descripcion, departamento_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `, [
       data.numeroCamara || `CAM-${Date.now()}`,
       data.tipo,
-      data.ubicacion,
       data.direccion || data.ubicacion,
       data.lat || null,
       data.lng || null,
       data.estado || 'Activa',
       data.fechaInstalacion || new Date().toISOString().split('T')[0],
-      data.ultimaRevision || new Date().toISOString().split('T')[0],
       data.descripcion || `Cámara ${data.tipo === "F" ? "Fija" : "Domo"} ubicada en ${data.ubicacion}`,
       departamentoId
     ])

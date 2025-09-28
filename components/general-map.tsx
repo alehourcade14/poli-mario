@@ -43,42 +43,57 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
   useEffect(() => {
     if (!denuncias.length || !isLoaded) return
 
-    // Extraer tipos de delitos únicos
-    const tipos = Array.from(new Set(denuncias.map((d) => d.tipo)))
+    console.log("🗺️ GeneralMap - Denuncias recibidas:", denuncias.length)
+    console.log("🗺️ GeneralMap - Primeras 3 denuncias:", denuncias.slice(0, 3))
+    console.log("🗺️ GeneralMap - Campos de coordenadas en primeras 3:", denuncias.slice(0, 3).map(d => ({ 
+      id: d.id, 
+      latitud: d.latitud, 
+      longitud: d.longitud, 
+      ubicacion: d.ubicacion 
+    })))
+
+    // Extraer tipos de delitos únicos usando el campo correcto de la API
+    const tipos = Array.from(new Set(denuncias.map((d) => d.tipo_delito || d.tipo || 'Sin especificar')))
     setTipoDelitos(tipos)
 
-    // Extraer departamentos únicos
-    const deptos = Array.from(new Set(denuncias.map((d) => d.departamento)))
+    // Extraer departamentos únicos usando el campo correcto de la API
+    const deptos = Array.from(new Set(denuncias.map((d) => d.departamento_nombre || d.departamento || 'Sin departamento')))
     setDepartamentos(deptos)
+
+    console.log("🗺️ GeneralMap - Tipos encontrados:", tipos)
+    console.log("🗺️ GeneralMap - Departamentos encontrados:", deptos)
 
     // Filtrar denuncias según los criterios seleccionados
     let filteredDenuncias = [...denuncias]
 
     if (filtroTipo !== "todos") {
-      filteredDenuncias = filteredDenuncias.filter((d) => d.tipo === filtroTipo)
+      filteredDenuncias = filteredDenuncias.filter((d) => (d.tipo_delito || d.tipo) === filtroTipo)
     }
 
     if (filtroDepartamento !== "todos") {
-      filteredDenuncias = filteredDenuncias.filter((d) => d.departamento === filtroDepartamento)
+      filteredDenuncias = filteredDenuncias.filter((d) => (d.departamento_nombre || d.departamento) === filtroDepartamento)
     }
 
     if (filtroEstado !== "todos") {
-      filteredDenuncias = filteredDenuncias.filter((d) => d.estado === filtroEstado)
+      filteredDenuncias = filteredDenuncias.filter((d) => (d.estado_nombre || d.estado) === filtroEstado)
     }
 
-    // Crear marcadores para las denuncias con ubicación
-    const newMarkers = filteredDenuncias
-      .filter((d) => d.ubicacion && d.ubicacion.lat && d.ubicacion.lng)
-      .map((denuncia) => ({
-        id: denuncia.id,
-        position: {
-          lat: denuncia.ubicacion.lat,
-          lng: denuncia.ubicacion.lng,
-        },
-        denuncia,
-        icon: getMarkerIcon(denuncia.estado, denuncia.tipo),
-      }))
+    // Crear marcadores para las denuncias con ubicación usando latitud y longitud de la API
+    const denunciasConUbicacion = filteredDenuncias.filter((d) => d.latitud && d.longitud && !isNaN(d.latitud) && !isNaN(d.longitud))
+    console.log("🗺️ GeneralMap - Denuncias con ubicación:", denunciasConUbicacion.length)
+    console.log("🗺️ GeneralMap - Primeras 3 denuncias con coordenadas:", denunciasConUbicacion.slice(0, 3).map(d => ({ id: d.id, lat: d.latitud, lng: d.longitud })))
+    
+    const newMarkers = denunciasConUbicacion.map((denuncia) => ({
+      id: denuncia.id,
+      position: {
+        lat: parseFloat(denuncia.latitud),
+        lng: parseFloat(denuncia.longitud),
+      },
+      denuncia,
+      icon: getMarkerIcon(denuncia.estado_nombre || denuncia.estado, denuncia.tipo_delito || denuncia.tipo),
+    }))
 
+    console.log("🗺️ GeneralMap - Marcadores generados:", newMarkers.length)
     setMarkers(newMarkers)
   }, [denuncias, filtroTipo, filtroDepartamento, filtroEstado, isLoaded])
 
@@ -303,17 +318,19 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
                 >
                   {showClusters && window.google?.maps ? (
                     <MarkerClusterer>
-                      {(clusterer) =>
-                        markers.map((marker) => (
-                          <Marker
-                            key={marker.id}
-                            position={marker.position}
-                            icon={marker.icon}
-                            clusterer={clusterer}
-                            onClick={() => handleMarkerClick(marker)}
-                          />
-                        ))
-                      }
+                      {(clusterer) => (
+                        <>
+                          {markers.map((marker) => (
+                            <Marker
+                              key={marker.id}
+                              position={marker.position}
+                              icon={marker.icon}
+                              clusterer={clusterer}
+                              onClick={() => handleMarkerClick(marker)}
+                            />
+                          ))}
+                        </>
+                      )}
                     </MarkerClusterer>
                   ) : (
                     markers.map((marker) => (
@@ -331,7 +348,12 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
               {isLoaded && markers.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="bg-white dark:bg-gray-800 p-4 rounded-md shadow-md">
-                    <p className="text-center">No hay denuncias con ubicación para los filtros seleccionados.</p>
+                    <p className="text-center">
+                      {denuncias.length === 0 
+                        ? "No hay denuncias cargadas." 
+                        : `No hay denuncias con coordenadas para los filtros seleccionados. Total de denuncias: ${denuncias.length}`
+                      }
+                    </p>
                   </div>
                 </div>
               )}
@@ -381,40 +403,127 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
               </div>
             </div>
 
-            {selectedDenuncia && (
+            {selectedDenuncia && (() => {
+              console.log("🗺️ GeneralMap - Denuncia seleccionada:", selectedDenuncia)
+              return (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Denuncia #{selectedDenuncia.id}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div>
-                    <strong>Denunciante:</strong> {selectedDenuncia.denunciante}
+                    <strong>Denunciante:</strong> {selectedDenuncia.denunciante_nombre || selectedDenuncia.denunciante || 'No especificado'}
                   </div>
                   <div>
-                    <strong>Tipo:</strong> {selectedDenuncia.tipo}
+                    <strong>Tipo:</strong> {selectedDenuncia.tipo_delito || selectedDenuncia.tipo || 'No especificado'}
                   </div>
                   <div>
-                    <strong>Estado:</strong> {getStatusBadge(selectedDenuncia.estado)}
+                    <strong>Estado:</strong> {getStatusBadge(selectedDenuncia.estado_nombre || selectedDenuncia.estado)}
                   </div>
                   <div>
-                    <strong>Fecha:</strong> {new Date(selectedDenuncia.fecha).toLocaleDateString()}
+                    <strong>Fecha:</strong> {selectedDenuncia.fecha_denuncia || selectedDenuncia.fecha_hecho || selectedDenuncia.created_at || selectedDenuncia.fecha ? 
+                      new Date(selectedDenuncia.fecha_denuncia || selectedDenuncia.fecha_hecho || selectedDenuncia.created_at || selectedDenuncia.fecha).toLocaleDateString() : 
+                      'No especificada'}
                   </div>
                   <div>
-                    <strong>Departamento:</strong> {selectedDenuncia.departamento}
+                    <strong>Departamento:</strong> {selectedDenuncia.departamento_nombre || selectedDenuncia.departamento || 'No especificado'}
                   </div>
-                  {selectedDenuncia.direccion && (
+                  {(selectedDenuncia.denunciante_direccion || selectedDenuncia.direccion) && (
                     <div>
-                      <strong>Dirección:</strong> {selectedDenuncia.direccion}
+                      <strong>Dirección:</strong> {selectedDenuncia.denunciante_direccion || selectedDenuncia.direccion}
                     </div>
                   )}
                   <div>
                     <strong>Descripción:</strong>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {selectedDenuncia.descripcion.length > 100
+                      {selectedDenuncia.descripcion && selectedDenuncia.descripcion.length > 100
                         ? `${selectedDenuncia.descripcion.substring(0, 100)}...`
-                        : selectedDenuncia.descripcion}
+                        : selectedDenuncia.descripcion || 'Sin descripción'}
                     </p>
                   </div>
+                  
+                  {/* Información adicional del denunciante */}
+                  {(selectedDenuncia.denunciante_apellido) && (
+                    <div>
+                      <strong>Apellido:</strong> {selectedDenuncia.denunciante_apellido}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.denunciante_dni || selectedDenuncia.dni) && (
+                    <div>
+                      <strong>DNI:</strong> {selectedDenuncia.denunciante_dni || selectedDenuncia.dni}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.denunciante_telefono || selectedDenuncia.telefono) && (
+                    <div>
+                      <strong>Teléfono:</strong> {selectedDenuncia.denunciante_telefono || selectedDenuncia.telefono}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.denunciante_email || selectedDenuncia.email) && (
+                    <div>
+                      <strong>Email:</strong> {selectedDenuncia.denunciante_email || selectedDenuncia.email}
+                    </div>
+                  )}
+                  
+                  {/* Información del hecho */}
+                  {(selectedDenuncia.fecha_hecho) && (
+                    <div>
+                      <strong>Fecha del Hecho:</strong> {selectedDenuncia.fecha_hecho ? 
+                        new Date(selectedDenuncia.fecha_hecho).toLocaleDateString() : 'No especificada'}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.hora_hecho) && (
+                    <div>
+                      <strong>Hora del Hecho:</strong> {selectedDenuncia.hora_hecho || 'No especificada'}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.lugar_hecho) && (
+                    <div>
+                      <strong>Lugar del Hecho:</strong> {selectedDenuncia.lugar_hecho || 'No especificado'}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.departamento_hecho) && (
+                    <div>
+                      <strong>Departamento del Hecho:</strong> {selectedDenuncia.departamento_hecho || 'No especificado'}
+                    </div>
+                  )}
+                  
+                  {/* Información de coordenadas */}
+                  {(selectedDenuncia.latitud && selectedDenuncia.longitud) && (
+                    <div>
+                      <strong>Coordenadas:</strong> {parseFloat(selectedDenuncia.latitud).toFixed(6)}, {parseFloat(selectedDenuncia.longitud).toFixed(6)}
+                    </div>
+                  )}
+                  
+                  {/* Información adicional para denuncias formales */}
+                  {(selectedDenuncia.denunciante_nacionalidad || selectedDenuncia.nacionalidad) && (
+                    <div>
+                      <strong>Nacionalidad:</strong> {selectedDenuncia.denunciante_nacionalidad || selectedDenuncia.nacionalidad}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.denunciante_estado_civil || selectedDenuncia.estado_civil) && (
+                    <div>
+                      <strong>Estado Civil:</strong> {selectedDenuncia.denunciante_estado_civil || selectedDenuncia.estado_civil}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.denunciante_profesion || selectedDenuncia.profesion) && (
+                    <div>
+                      <strong>Profesión:</strong> {selectedDenuncia.denunciante_profesion || selectedDenuncia.profesion}
+                    </div>
+                  )}
+                  
+                  {(selectedDenuncia.numero_expediente) && (
+                    <div>
+                      <strong>Número de Expediente:</strong> {selectedDenuncia.numero_expediente}
+                    </div>
+                  )}
                   <Button
                     className="w-full mt-4"
                     onClick={() => router.push(`/dashboard/denuncia/${selectedDenuncia.id}`)}
@@ -424,7 +533,8 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
                   </Button>
                 </CardContent>
               </Card>
-            )}
+              )
+            })()}
 
             <div className="text-sm text-muted-foreground">
               <p>Total de denuncias en el mapa: {markers.length}</p>

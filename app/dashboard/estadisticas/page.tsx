@@ -7,25 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BarChart, PieChart, LineChart, DoughnutChart, RadarChart } from "@/components/charts"
-import { FileText, AlertTriangle, CheckCircle, Clock, FileDown, Loader2, Plus, Camera } from "lucide-react"
+import { FileText, AlertTriangle, CheckCircle, Clock, FileDown, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { generatePDF } from "@/lib/pdf-generator"
 import { useToast } from "@/components/ui/use-toast"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import HeatMap from "@/components/heat-map"
 import GeneralMap from "@/components/general-map"
-import CamarasMap from "@/components/camaras-map"
 import { useCurrentUser } from "@/hooks/use-current-user"
 
 const POBLACION_LA_RIOJA = 383865 // Población total de La Rioja (Censo 2022)
@@ -40,28 +30,13 @@ export default function Estadisticas() {
   const [tipoGraficoTasa, setTipoGraficoTasa] = useState<"bar" | "pie" | "doughnut">("bar")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [activeTab, setActiveTab] = useState("estado")
-  const [isAddCameraDialogOpen, setIsAddCameraDialogOpen] = useState(false)
-  const [cameraForm, setCameraForm] = useState({
-    nombre: "",
-    ubicacion: "",
-    direccion: "",
-    tipo: "",
-    estado: "Activa",
-    resolucion: "",
-    visionNocturna: false,
-    audio: false,
-    grabacion: false,
-    lat: "",
-    lng: "",
-    observaciones: ""
-  })
   const statsContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const router = useRouter()
 
   const [stats, setStats] = useState({
     total: 0,
-    pendientes: 0,
+    consulta: 0,
     enProceso: 0,
     resueltas: 0,
     porDepartamento: {} as Record<string, number>,
@@ -82,16 +57,24 @@ export default function Estadisticas() {
       if (!user) return
       
       try {
-        const response = await fetch('/api/denuncias', {
-          credentials: 'include'
+        console.log("🔍 Cargando denuncias para estadísticas...")
+        
+        const [denunciasResponse, denunciasFormalesResponse] = await Promise.all([
+          fetch('/api/denuncias', { credentials: 'include' }),
+          fetch('/api/denuncias-formales', { credentials: 'include' })
+        ])
+
+        const denuncias = denunciasResponse.ok ? await denunciasResponse.json() : []
+        const denunciasFormales = denunciasFormalesResponse.ok ? await denunciasFormalesResponse.json() : []
+
+        console.log("📊 Datos recibidos para estadísticas:", {
+          denuncias: denuncias.length,
+          denunciasFormales: denunciasFormales.length
         })
 
-        if (!response.ok) {
-          throw new Error('Error al cargar denuncias')
-        }
-
-        const data = await response.json()
-        setDenuncias(data)
+        // Combinar ambas tablas de denuncias como en el panel de control
+        const todasLasDenuncias = [...denuncias, ...denunciasFormales]
+        setDenuncias(todasLasDenuncias)
       } catch (error) {
         console.error('Error fetching denuncias:', error)
       }
@@ -125,32 +108,39 @@ export default function Estadisticas() {
           break
       }
 
-      filteredDenuncias = denuncias.filter((d) => new Date(d.fecha) >= startDate)
+      filteredDenuncias = denuncias.filter((d) => {
+        const fecha = new Date(d.fecha_denuncia || d.fecha_hecho || d.created_at || d.fecha)
+        return !isNaN(fecha.getTime()) && fecha >= startDate
+      })
     }
 
-    // Calcular estadísticas
-    const pendientes = filteredDenuncias.filter((d) => d.estado === "Pendiente").length
-    const enProceso = filteredDenuncias.filter((d) => d.estado === "En Proceso").length
-    const resueltas = filteredDenuncias.filter((d) => d.estado === "Completada").length
+    // Calcular estadísticas usando los mismos campos que el panel de control
+    const consulta = filteredDenuncias.filter((d) => d.estado_nombre === "Consulta").length
+    const enProceso = filteredDenuncias.filter((d) => d.estado_nombre === "En Proceso").length
+    const resueltas = filteredDenuncias.filter((d) => d.estado_nombre === "Resuelta").length
 
-    // Agrupar por departamento
+    // Agrupar por departamento usando el campo correcto de la API
     const porDepartamento: Record<string, number> = {}
     filteredDenuncias.forEach((d) => {
-      porDepartamento[d.departamento] = (porDepartamento[d.departamento] || 0) + 1
+      const departamento = d.departamento_nombre || d.departamento || 'Sin departamento'
+      porDepartamento[departamento] = (porDepartamento[departamento] || 0) + 1
     })
 
-    // Agrupar por tipo
+    // Agrupar por tipo usando el campo correcto de la API
     const porTipo: Record<string, number> = {}
     filteredDenuncias.forEach((d) => {
-      porTipo[d.tipo] = (porTipo[d.tipo] || 0) + 1
+      const tipo = d.tipo_delito || d.tipo || 'Sin especificar'
+      porTipo[tipo] = (porTipo[tipo] || 0) + 1
     })
 
-    // Agrupar por mes
+    // Agrupar por mes usando el campo correcto de fecha
     const porMes: Record<string, number> = {}
     filteredDenuncias.forEach((d) => {
-      const fecha = new Date(d.fecha)
-      const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`
-      porMes[mes] = (porMes[mes] || 0) + 1
+      const fecha = new Date(d.fecha_denuncia || d.fecha_hecho || d.created_at || d.fecha)
+      if (!isNaN(fecha.getTime())) {
+        const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`
+        porMes[mes] = (porMes[mes] || 0) + 1
+      }
     })
 
     // Ordenar meses cronológicamente
@@ -161,9 +151,19 @@ export default function Estadisticas() {
         porMesOrdenado[key] = porMes[key]
       })
 
+    console.log("📊 Estadísticas calculadas:", {
+      total: filteredDenuncias.length,
+      consulta,
+      enProceso,
+      resueltas,
+      porDepartamento,
+      porTipo,
+      porMes: porMesOrdenado,
+    })
+
     setStats({
       total: filteredDenuncias.length,
-      pendientes,
+      consulta,
       enProceso,
       resueltas,
       porDepartamento,
@@ -196,7 +196,7 @@ export default function Estadisticas() {
         department: user?.departamento || 'Sin departamento',
         stats: {
           total: stats.total,
-          pendientes: stats.pendientes,
+          pendientes: stats.consulta,
           enProceso: stats.enProceso,
           resueltas: stats.resueltas,
         },
@@ -239,59 +239,6 @@ export default function Estadisticas() {
     }
   }
 
-  const handleCameraFormChange = (field: string, value: any) => {
-    setCameraForm(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
-
-  const handleAddCamera = async () => {
-    try {
-      // Validar campos obligatorios
-      if (!cameraForm.nombre || !cameraForm.ubicacion || !cameraForm.direccion || !cameraForm.tipo) {
-        toast({
-          title: "Error",
-          description: "Por favor completa todos los campos obligatorios",
-          variant: "destructive"
-        })
-        return
-      }
-
-      // Aquí iría la lógica para guardar la cámara
-      console.log("Datos de la cámara:", cameraForm)
-      
-      toast({
-        title: "Cámara agregada",
-        description: "La cámara se ha agregado correctamente",
-      })
-
-      // Limpiar formulario y cerrar diálogo
-      setCameraForm({
-        nombre: "",
-        ubicacion: "",
-        direccion: "",
-        tipo: "",
-        estado: "Activa",
-        resolucion: "",
-        visionNocturna: false,
-        audio: false,
-        grabacion: false,
-        lat: "",
-        lng: "",
-        observaciones: ""
-      })
-      setIsAddCameraDialogOpen(false)
-
-    } catch (error) {
-      console.error("Error al agregar cámara:", error)
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al agregar la cámara",
-        variant: "destructive"
-      })
-    }
-  }
 
   if (userLoading) {
     return (
@@ -357,9 +304,9 @@ export default function Estadisticas() {
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.pendientes}</div>
+                <div className="text-2xl font-bold">{stats.consulta}</div>
                 <p className="text-xs text-muted-foreground">
-                  {stats.total > 0 ? `${Math.round((stats.pendientes / stats.total) * 100)}%` : "0%"} del total
+                  {stats.total > 0 ? `${Math.round((stats.consulta / stats.total) * 100)}%` : "0%"} del total
                 </p>
               </CardContent>
             </Card>
@@ -397,7 +344,6 @@ export default function Estadisticas() {
               <TabsTrigger value="tasa">Tasa de Delitos</TabsTrigger>
               <TabsTrigger value="mapa">Mapa de Calor</TabsTrigger>
               <TabsTrigger value="general">Mapa del Delito</TabsTrigger>
-              <TabsTrigger value="camaras">Cámaras</TabsTrigger>
             </TabsList>
             <TabsContent value="estado">
               <Card>
@@ -428,13 +374,13 @@ export default function Estadisticas() {
                     {tipoGraficoEstado === "pie" ? (
                       <PieChart
                         labels={["Consulta", "En Proceso", "Resueltas"]}
-                        data={[stats.pendientes, stats.enProceso, stats.resueltas]}
+                        data={[stats.consulta, stats.enProceso, stats.resueltas]}
                         backgroundColor={["#f59e0b", "#3b82f6", "#10b981"]}
                       />
                     ) : (
                       <DoughnutChart
                         labels={["Consulta", "En Proceso", "Resueltas"]}
-                        data={[stats.pendientes, stats.enProceso, stats.resueltas]}
+                        data={[stats.consulta, stats.enProceso, stats.resueltas]}
                         backgroundColor={["#f59e0b", "#3b82f6", "#10b981"]}
                       />
                     )}
@@ -657,189 +603,6 @@ export default function Estadisticas() {
             </TabsContent>
             <TabsContent value="general">
               <GeneralMap denuncias={denuncias} />
-            </TabsContent>
-            <TabsContent value="camaras">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Cámaras de Seguridad</CardTitle>
-                    <CardDescription>Gestión y monitoreo de cámaras de seguridad</CardDescription>
-                  </div>
-                  <Dialog open={isAddCameraDialogOpen} onOpenChange={setIsAddCameraDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Agregar Cámaras
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center">
-                          <Camera className="mr-2 h-5 w-5" />
-                          Agregar Nueva Cámara
-                        </DialogTitle>
-                        <DialogDescription>
-                          Complete la información de la nueva cámara de seguridad
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="nombre">Nombre de la Cámara *</Label>
-                            <Input
-                              id="nombre"
-                              value={cameraForm.nombre}
-                              onChange={(e) => handleCameraFormChange("nombre", e.target.value)}
-                              placeholder="Ej: Cámara 001 - Plaza Principal"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="ubicacion">Ubicación *</Label>
-                            <Input
-                              id="ubicacion"
-                              value={cameraForm.ubicacion}
-                              onChange={(e) => handleCameraFormChange("ubicacion", e.target.value)}
-                              placeholder="Ej: Plaza Principal"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="direccion">Dirección *</Label>
-                          <Input
-                            id="direccion"
-                            value={cameraForm.direccion}
-                            onChange={(e) => handleCameraFormChange("direccion", e.target.value)}
-                            placeholder="Ej: Av. San Martín 123, La Rioja"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="tipo">Tipo de Cámara *</Label>
-                            <Select value={cameraForm.tipo} onValueChange={(value) => handleCameraFormChange("tipo", value)}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar tipo" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="fija">Cámara Fija</SelectItem>
-                                <SelectItem value="ptz">Cámara PTZ</SelectItem>
-                                <SelectItem value="dome">Cámara Dome</SelectItem>
-                                <SelectItem value="bullet">Cámara Bullet</SelectItem>
-                                <SelectItem value="covert">Cámara Oculta</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="estado">Estado</Label>
-                            <Select value={cameraForm.estado} onValueChange={(value) => handleCameraFormChange("estado", value)}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Activa">Activa</SelectItem>
-                                <SelectItem value="Inactiva">Inactiva</SelectItem>
-                                <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-                                <SelectItem value="Fuera de Servicio">Fuera de Servicio</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="resolucion">Resolución</Label>
-                            <Select value={cameraForm.resolucion} onValueChange={(value) => handleCameraFormChange("resolucion", value)}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar resolución" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="720p">720p HD</SelectItem>
-                                <SelectItem value="1080p">1080p Full HD</SelectItem>
-                                <SelectItem value="4K">4K Ultra HD</SelectItem>
-                                <SelectItem value="8K">8K Ultra HD</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Coordenadas GPS</Label>
-                            <div className="grid grid-cols-2 gap-2">
-                              <Input
-                                placeholder="Latitud"
-                                value={cameraForm.lat}
-                                onChange={(e) => handleCameraFormChange("lat", e.target.value)}
-                              />
-                              <Input
-                                placeholder="Longitud"
-                                value={cameraForm.lng}
-                                onChange={(e) => handleCameraFormChange("lng", e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <Label>Características</Label>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="visionNocturna"
-                                checked={cameraForm.visionNocturna}
-                                onChange={(e) => handleCameraFormChange("visionNocturna", e.target.checked)}
-                                className="rounded"
-                              />
-                              <Label htmlFor="visionNocturna" className="text-sm">Visión Nocturna</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="audio"
-                                checked={cameraForm.audio}
-                                onChange={(e) => handleCameraFormChange("audio", e.target.checked)}
-                                className="rounded"
-                              />
-                              <Label htmlFor="audio" className="text-sm">Audio</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="grabacion"
-                                checked={cameraForm.grabacion}
-                                onChange={(e) => handleCameraFormChange("grabacion", e.target.checked)}
-                                className="rounded"
-                              />
-                              <Label htmlFor="grabacion" className="text-sm">Grabación</Label>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="observaciones">Observaciones</Label>
-                          <Textarea
-                            id="observaciones"
-                            value={cameraForm.observaciones}
-                            onChange={(e) => handleCameraFormChange("observaciones", e.target.value)}
-                            placeholder="Información adicional sobre la cámara..."
-                            rows={3}
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddCameraDialogOpen(false)}>
-                          Cancelar
-                        </Button>
-                        <Button onClick={handleAddCamera}>
-                          Agregar Cámara
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent>
-                  <CamarasMap user={user} />
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
 

@@ -46,6 +46,7 @@ export async function GET(request: Request) {
         df.denunciado_descripcion,
         df.tipo_delito_id,
         df.estado_id,
+        df.departamento_id,
         df.fecha_denuncia,
         df.hora_denuncia,
         df.observaciones,
@@ -55,10 +56,12 @@ export async function GET(request: Request) {
         df.updated_at,
         de.nombre as departamento_nombre,
         es.nombre as estado_nombre,
+        td.nombre as tipo_delito,
         u.nombre || ' ' || u.apellido as creador_nombre
       FROM denuncias_formales df
       LEFT JOIN departamentos de ON df.departamento_id = de.id
       LEFT JOIN estados_denuncias es ON df.estado_id = es.id
+      LEFT JOIN tipos_delitos td ON df.tipo_delito_id = td.id
       LEFT JOIN usuarios u ON df.usuario_id = u.id
       ORDER BY df.created_at DESC
     `)
@@ -101,8 +104,9 @@ export async function POST(request: Request) {
       })
     }
     
-    // Obtener estado por defecto (Pendiente)
-    const estadoResult = await query('SELECT id FROM estados_denuncias WHERE nombre = $1', ['Pendiente'])
+    // Obtener estado seleccionado en el formulario o usar Consulta por defecto
+    const estadoSeleccionado = data.estado || 'Consulta'
+    const estadoResult = await query('SELECT id FROM estados_denuncias WHERE nombre = $1', [estadoSeleccionado])
     const estadoId = estadoResult.rows[0]?.id || 1
 
     // Obtener tipo de delito si existe
@@ -121,12 +125,16 @@ export async function POST(request: Request) {
     let departamentoId = null
     if (data.departamento) {
       try {
+        console.log("🔍 Buscando departamento:", data.departamento)
         const deptResult = await query('SELECT id FROM departamentos WHERE nombre = $1', [data.departamento])
         departamentoId = deptResult.rows[0]?.id
+        console.log("✅ Departamento encontrado:", { nombre: data.departamento, id: departamentoId })
       } catch (deptError) {
-        console.warn("No se pudo encontrar el departamento:", data.departamento)
+        console.warn("❌ No se pudo encontrar el departamento:", data.departamento, deptError)
         // Continuar sin departamento
       }
+    } else {
+      console.log("⚠️ No se proporcionó departamento")
     }
 
     // Generar número de expediente único si no se proporciona

@@ -31,7 +31,7 @@ export default function NuevaDenunciaFormal() {
     barrio: "",
     sexo: "",
     tipo: "",
-    departamento: "",
+    departamento: "Departamento Cibercrimen",
     division: "",
     descripcion: "",
     estado: "Consulta",
@@ -94,8 +94,8 @@ export default function NuevaDenunciaFormal() {
       !formData.departamento ||
       !formData.division ||
       !formData.descripcion ||
-      !formData.fechaHecho ||
-      !formData.horaHecho ||
+      !formData.fechaDenuncia ||
+      !formData.horaDenuncia ||
       !formData.barrioHecho ||
       !formData.numExpediente
     ) {
@@ -122,15 +122,15 @@ export default function NuevaDenunciaFormal() {
           denunciante_nacionalidad: formData.nacionalidad,
           denunciante_estado_civil: formData.estadoCivil,
           denunciante_profesion: formData.profesion,
-          fecha_hecho: formData.fechaHecho,
-          hora_hecho: formData.horaHecho,
+          fecha_hecho: formData.fechaDenuncia,
+          hora_hecho: formData.horaDenuncia,
           lugar_hecho: formData.barrioHecho,
           departamento_hecho: formData.barrio,
           latitud: formData.ubicacion?.lat || null,
           longitud: formData.ubicacion?.lng || null,
           descripcion: formData.descripcion,
           tipo_delito: formData.tipo || 'No especificado',
-          departamento: formData.departamento || 'La Rioja',
+          departamento: formData.departamento || 'Departamento Cibercrimen',
           observaciones: `Edad: ${formData.edad}, Sexo: ${formData.sexo}, Instrucción: ${formData.instruccion}`
         })
       })
@@ -207,8 +207,8 @@ export default function NuevaDenunciaFormal() {
       !formData.departamento ||
       !formData.division ||
       !formData.descripcion ||
-      !formData.fechaHecho ||
-      !formData.horaHecho ||
+      !formData.fechaDenuncia ||
+      !formData.horaDenuncia ||
       !formData.barrioHecho ||
       !formData.numExpediente
     ) {
@@ -245,15 +245,15 @@ export default function NuevaDenunciaFormal() {
           denunciante_nacionalidad: formData.nacionalidad,
           denunciante_estado_civil: formData.estadoCivil,
           denunciante_profesion: formData.profesion,
-          fecha_hecho: formData.fechaHecho,
-          hora_hecho: formData.horaHecho,
+          fecha_hecho: formData.fechaDenuncia,
+          hora_hecho: formData.horaDenuncia,
           lugar_hecho: formData.barrioHecho,
           departamento_hecho: formData.barrio,
           latitud: formData.ubicacion?.lat || null,
           longitud: formData.ubicacion?.lng || null,
           descripcion: formData.descripcion,
           tipo_delito: formData.tipo || 'No especificado',
-          departamento: formData.departamento || 'La Rioja',
+          departamento: formData.departamento || 'Departamento Cibercrimen',
           observaciones: `Edad: ${formData.edad}, Sexo: ${formData.sexo}, Instrucción: ${formData.instruccion}`
         })
       })
@@ -329,15 +329,16 @@ export default function NuevaDenunciaFormal() {
         denunciante_nacionalidad: formData.nacionalidad,
         denunciante_estado_civil: formData.estadoCivil,
         denunciante_profesion: formData.profesion,
-        fecha_hecho: formData.fechaHecho,
-        hora_hecho: formData.horaHecho,
+        fecha_hecho: formData.fechaDenuncia,
+        hora_hecho: formData.horaDenuncia,
         lugar_hecho: formData.barrioHecho,
         departamento_hecho: formData.barrio,
         latitud: formData.ubicacion?.lat || null,
         longitud: formData.ubicacion?.lng || null,
         descripcion: formData.descripcion,
         tipo_delito: formData.tipo || 'No especificado',
-        departamento: formData.departamento || 'La Rioja',
+        departamento: formData.departamento || 'Departamento Cibercrimen',
+        estado: formData.estado,
         observaciones: `Edad: ${formData.edad}, Sexo: ${formData.sexo}, Instrucción: ${formData.instruccion}`
       }
 
@@ -602,15 +603,10 @@ export default function NuevaDenunciaFormal() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Departamento Cibercrimen">Departamento Cibercrimen</SelectItem>
-                        <SelectItem value="Departamento Sustracción de Automotores">
-                          Departamento Sustracción de Automotores
-                        </SelectItem>
-                        <SelectItem value="Departamento Delitos Contra la Propiedad">
-                          Departamento Delitos Contra la Propiedad
-                        </SelectItem>
-                        <SelectItem value="Departamento Delitos contra las Personas">
-                          Departamento Delitos contra las Personas
-                        </SelectItem>
+                        <SelectItem value="Departamento Sustracción de Automotores">Departamento Sustracción de Automotores</SelectItem>
+                        <SelectItem value="Departamento Delitos Contra la Propiedad">Departamento Delitos Contra la Propiedad</SelectItem>
+                        <SelectItem value="Departamento Delitos contra las Personas">Departamento Delitos contra las Personas</SelectItem>
+                        <SelectItem value="Departamento Seguridad Personal">Departamento Seguridad Personal</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -636,35 +632,25 @@ export default function NuevaDenunciaFormal() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fechaHecho">Fecha de la Denuncia</Label>
+                    <Label htmlFor="fechaDenuncia">Fecha de la Denuncia</Label>
                     <Input
-                      id="fechaHecho"
-                      name="fechaHecho"
+                      id="fechaDenuncia"
+                      name="fechaDenuncia"
                       type="date"
-                      value={formData.fechaHecho}
+                      value={formData.fechaDenuncia}
                       onChange={handleChange}
-                      disabled
-                      className="bg-gray-50 cursor-not-allowed"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Fecha establecida automáticamente al día actual
-                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="horaHecho">Hora de la Denuncia</Label>
+                    <Label htmlFor="horaDenuncia">Hora de la Denuncia</Label>
                     <Input
-                      id="horaHecho"
-                      name="horaHecho"
+                      id="horaDenuncia"
+                      name="horaDenuncia"
                       type="time"
-                      value={formData.horaHecho}
+                      value={formData.horaDenuncia}
                       onChange={handleChange}
-                      disabled
-                      className="bg-gray-50 cursor-not-allowed"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Hora establecida automáticamente al momento actual
-                    </p>
                   </div>
                 </div>
 

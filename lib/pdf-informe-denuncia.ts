@@ -152,7 +152,7 @@ export async function exportInformeDenuncia(denuncia: any, funcionarioEditor?: a
     addSeparator()
 
     addText(`Creado por: ${toSafeString(denuncia.creadorNombre)}`, 11, true)
-    addText(`Departamento: ${toSafeString(denuncia.creadorDepartamento || denuncia.departamento)}`)
+    addText(`Departamento: ${toSafeString(denuncia.creadorDepartamento || denuncia.departamento || 'Departamento Cibercrimen')}`)
     addText(`Fecha de Creación: ${denuncia.fecha ? new Date(denuncia.fecha).toLocaleString() : "No registrada"}`)
 
     // Si hay funcionario editor (quien exporta el informe)

@@ -81,8 +81,8 @@ interface Camara {
   comisaria: string
   tipo: "F" | "D" // F = Fija, D = Domo
   estado: "Operativa" | "Fuera de Servicio" | "Mantenimiento"
-  lat: number
-  lng: number
+  latitud: number
+  longitud: number
   descripcion?: string
   fechaInstalacion?: string
   ultimaRevision?: string
@@ -115,8 +115,8 @@ export default function CamarasMap({ user }: CamaraMapProps) {
     comisaria: "",
     tipo: "F" as "F" | "D",
     estado: "Operativa" as "Operativa" | "Fuera de Servicio" | "Mantenimiento",
-    lat: defaultCenter.lat,
-    lng: defaultCenter.lng,
+    latitud: defaultCenter.lat,
+    longitud: defaultCenter.lng,
     descripcion: "",
     fechaInstalacion: new Date().toISOString().split("T")[0],
     ultimaRevision: new Date().toISOString().split("T")[0],
@@ -142,7 +142,38 @@ export default function CamarasMap({ user }: CamaraMapProps) {
         }
 
         const data = await response.json()
-        setCamaras(data)
+        console.log("📹 CamarasMap - Datos recibidos de la API:", data)
+        
+        // Mapear los datos de la API al formato esperado por el componente
+        const camarasMapeadas = data.map((camara: any, index: number) => {
+          // Mapear estado de la base de datos al formato del componente
+          let estadoMapeado = "Operativa"
+          if (camara.estado === "Activa") {
+            estadoMapeado = "Operativa"
+          } else if (camara.estado === "Mantenimiento") {
+            estadoMapeado = "Mantenimiento"
+          } else if (camara.estado === "Fuera de Servicio" || camara.estado === "Inactiva") {
+            estadoMapeado = "Fuera de Servicio"
+          }
+
+          return {
+            ...camara,
+            id: camara.id || index + 1,
+            ubicacion: camara.ubicacion || camara.direccion || "Ubicación no especificada",
+            latitud: parseFloat(camara.latitud) || 0,
+            longitud: parseFloat(camara.longitud) || 0,
+            tipo: camara.tipo_camara || camara.tipo || "F",
+            estado: estadoMapeado,
+            comisaria: camara.departamento_nombre || camara.departamento || "DOMICILIOS PRIVADOS",
+            jurisdiccion: "La Rioja Capital",
+            fechaInstalacion: camara.fecha_instalacion || "2024-01-01",
+            ultimaRevision: camara.ultimo_mantenimiento || "2024-12-01",
+            descripcion: camara.descripcion || `Cámara ${camara.tipo_camara || camara.tipo || "Fija"} ubicada en ${camara.direccion || camara.ubicacion}`,
+          }
+        })
+        
+        console.log("📹 CamarasMap - Cámaras mapeadas:", camarasMapeadas)
+        setCamaras(camarasMapeadas)
       } catch (error) {
         console.error('Error fetching camaras:', error)
         // Fallback a datos iniciales si hay error
@@ -176,6 +207,7 @@ export default function CamarasMap({ user }: CamaraMapProps) {
       filtered = filtered.filter((c) => c.estado === filtroEstado)
     }
 
+    console.log("📹 CamarasMap - Cámaras filtradas:", filtered)
     setFilteredCamaras(filtered)
   }, [camaras, filtroComisaria, filtroTipo, filtroEstado])
 
@@ -186,7 +218,19 @@ export default function CamarasMap({ user }: CamaraMapProps) {
   }, [])
 
   const getMarkerIcon = (camara: Camara) => {
-    const color = camara.estado === "Operativa" ? "#10b981" : camara.estado === "Mantenimiento" ? "#f59e0b" : "#ef4444"
+    // Colores que coinciden exactamente con la leyenda
+    let color = "#10b981" // Verde por defecto (Operativa)
+    
+    if (camara.estado === "Operativa") {
+      color = "#10b981" // Verde - Operativa
+    } else if (camara.estado === "Mantenimiento") {
+      color = "#f59e0b" // Naranja/Amber - Mantenimiento
+    } else if (camara.estado === "Fuera de Servicio") {
+      color = "#ef4444" // Rojo - Fuera de Servicio
+    }
+    
+    console.log(`📹 Marcador para cámara ${camara.nombre}: estado=${camara.estado}, color=${color}`)
+    
     const symbol = camara.tipo === "F" ? "📹" : "🎥"
 
     return {
@@ -392,8 +436,8 @@ export default function CamarasMap({ user }: CamaraMapProps) {
           comisaria,
           tipo,
           estado: "Operativa" as const,
-          lat: kmzCam.coordinates.lat,
-          lng: kmzCam.coordinates.lng,
+          latitud: kmzCam.coordinates.lat,
+          longitud: kmzCam.coordinates.lng,
           descripcion: kmzCam.description,
           fechaInstalacion: new Date().toISOString().split("T")[0],
           ultimaRevision: new Date().toISOString().split("T")[0],
@@ -463,8 +507,8 @@ export default function CamarasMap({ user }: CamaraMapProps) {
       comisaria: "",
       tipo: "F",
       estado: "Operativa",
-      lat: defaultCenter.lat,
-      lng: defaultCenter.lng,
+      latitud: defaultCenter.lat,
+      longitud: defaultCenter.lng,
       descripcion: "",
       fechaInstalacion: new Date().toISOString().split("T")[0],
       ultimaRevision: new Date().toISOString().split("T")[0],
@@ -482,8 +526,8 @@ export default function CamarasMap({ user }: CamaraMapProps) {
       comisaria: camara.comisaria,
       tipo: camara.tipo,
       estado: camara.estado,
-      lat: camara.lat,
-      lng: camara.lng,
+      latitud: camara.latitud,
+      longitud: camara.longitud,
       descripcion: camara.descripcion || "",
       fechaInstalacion: camara.fechaInstalacion || new Date().toISOString().split("T")[0],
       ultimaRevision: camara.ultimaRevision || new Date().toISOString().split("T")[0],
@@ -510,8 +554,8 @@ export default function CamarasMap({ user }: CamaraMapProps) {
     if (e.latLng && isDialogOpen) {
       setFormData((prev) => ({
         ...prev,
-        lat: e.latLng.lat(),
-        lng: e.latLng.lng(),
+        latitud: e.latLng.lat(),
+        longitud: e.latLng.lng(),
       }))
     }
   }
@@ -551,8 +595,8 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                         comisaria: "",
                         tipo: "F",
                         estado: "Operativa",
-                        lat: defaultCenter.lat,
-                        lng: defaultCenter.lng,
+                        latitud: defaultCenter.lat,
+                        longitud: defaultCenter.lng,
                         descripcion: "",
                         fechaInstalacion: new Date().toISOString().split("T")[0],
                         ultimaRevision: new Date().toISOString().split("T")[0],
@@ -653,9 +697,9 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                             id="lat"
                             type="number"
                             step="0.000001"
-                            value={formData.lat}
+                            value={formData.latitud}
                             onChange={(e) =>
-                              setFormData((prev) => ({ ...prev, lat: Number.parseFloat(e.target.value) }))
+                              setFormData((prev) => ({ ...prev, latitud: Number.parseFloat(e.target.value) }))
                             }
                           />
                         </div>
@@ -665,9 +709,9 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                             id="lng"
                             type="number"
                             step="0.000001"
-                            value={formData.lng}
+                            value={formData.longitud}
                             onChange={(e) =>
-                              setFormData((prev) => ({ ...prev, lng: Number.parseFloat(e.target.value) }))
+                              setFormData((prev) => ({ ...prev, longitud: Number.parseFloat(e.target.value) }))
                             }
                           />
                         </div>
@@ -680,7 +724,7 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                           {isLoaded && GOOGLE_MAPS_API_KEY ? (
                             <GoogleMap
                               mapContainerStyle={{ width: "100%", height: "300px" }}
-                              center={{ lat: formData.lat, lng: formData.lng }}
+                              center={{ lat: formData.latitud, lng: formData.longitud }}
                               zoom={15}
                               onClick={handleMapClick}
                               options={{
@@ -691,14 +735,14 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                               }}
                             >
                               <Marker
-                                position={{ lat: formData.lat, lng: formData.lng }}
+                                position={{ lat: formData.latitud, lng: formData.longitud }}
                                 draggable={true}
                                 onDragEnd={(e) => {
                                   if (e.latLng) {
                                     setFormData((prev) => ({
                                       ...prev,
-                                      lat: e.latLng!.lat(),
-                                      lng: e.latLng!.lng(),
+                                      latitud: e.latLng!.lat(),
+                                      longitud: e.latLng!.lng(),
                                     }))
                                   }
                                 }}
@@ -923,7 +967,7 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                   {filteredCamaras.map((camara) => (
                     <Marker
                       key={camara.id}
-                      position={{ lat: camara.lat, lng: camara.lng }}
+                      position={{ lat: camara.latitud, lng: camara.longitud }}
                       icon={getMarkerIcon(camara)}
                       onClick={() => handleMarkerClick(camara)}
                     />
@@ -931,7 +975,7 @@ export default function CamarasMap({ user }: CamaraMapProps) {
 
                   {selectedCamara && (
                     <InfoWindow
-                      position={{ lat: selectedCamara.lat, lng: selectedCamara.lng }}
+                      position={{ lat: selectedCamara.latitud, lng: selectedCamara.longitud }}
                       onCloseClick={() => setSelectedCamara(null)}
                     >
                       <div className="p-2">
@@ -1021,7 +1065,7 @@ export default function CamarasMap({ user }: CamaraMapProps) {
                     </div>
                   )}
                   <div>
-                    <strong>Coordenadas:</strong> {selectedCamara.lat.toFixed(6)}, {selectedCamara.lng.toFixed(6)}
+                    <strong>Coordenadas:</strong> {selectedCamara.latitud.toFixed(6)}, {selectedCamara.longitud.toFixed(6)}
                   </div>
 
                   {user?.rol === "admin" && (
