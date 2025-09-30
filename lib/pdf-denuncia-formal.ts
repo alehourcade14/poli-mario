@@ -60,6 +60,14 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       throw new Error("No se proporcionaron datos de la denuncia")
     }
 
+    // Validar que la denuncia tenga un ID
+    if (!denuncia.id) {
+      throw new Error("La denuncia no tiene un ID válido")
+    }
+
+    console.log("🔍 Iniciando generación de PDF para denuncia ID:", denuncia.id)
+    console.log("📋 Datos de denuncia recibidos:", denuncia)
+
     // Log para debugging
     console.log("📋 Datos de denuncia recibidos para PDF:", {
       // Datos personales
@@ -112,15 +120,22 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     const horaActualSistema = fechaActualSistema.toTimeString().slice(0, 5)
 
     // Crear un nuevo documento PDF
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    })
+    let pdf: jsPDF
+    try {
+      pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      })
+      console.log("✅ PDF creado exitosamente")
+    } catch (pdfError) {
+      console.error("❌ Error al crear el documento PDF:", pdfError)
+      throw new Error(`Error al crear el documento PDF: ${pdfError instanceof Error ? pdfError.message : String(pdfError)}`)
+    }
 
     // Configurar márgenes y dimensiones profesionales para bordes nítidos
     const marginTop = 20
-    const marginSide = 20
+    const marginSide = 35  // Aumentado para coincidir con la imagen de referencia
     const marginBottom = 25
     const titleFontSize = 16
     const subtitleFontSize = 12
@@ -199,7 +214,7 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
 
     // Construir el texto de la denuncia con validaciones
     const sexoTexto = getSafeValue(denuncia.sexo) === "Masculino" ? "Masculino" : (getSafeValue(denuncia.sexo) === "Femenino" ? "Femenino" : "No especificado")
-    const estadoCivilTexto = getSafeValue(denuncia.estadoCivil, 'No especificado')
+    const estadoCivilTexto = getSafeValue(denuncia.denunciante_estado_civil || denuncia.estadoCivil || denuncia.estado_civil, 'No especificado')
 
     // Obtener el nombre completo del denunciante de forma segura
     const nombreCompleto = `${getSafeValue(denuncia.denunciante_nombre)} ${getSafeValue(denuncia.denunciante_apellido)}`.trim()
@@ -215,16 +230,13 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     const fechaHechoTexto = denuncia.fecha_hecho ? fechaATexto(denuncia.fecha_hecho) : 'No especificada'
     const horaHechoTexto = getSafeValue(denuncia.hora_hecho, 'No especificada')
     const lugarHechoTexto = getSafeValue(denuncia.lugar_hecho, 'No especificado')
-    const tipoDelitoTexto = getSafeValue(denuncia.tipo_delito, 'No especificado')
+    const tipoDelitoTexto = getSafeValue(denuncia.tipo_delito_nombre || denuncia.tipo_delito || denuncia.tipo, 'No especificado')
     const departamentoHechoTexto = getSafeValue(denuncia.departamento_hecho, 'No especificado')
     
     // Generar texto de la denuncia con estructura mejorada
     let textoDenuncia = ""
     try {
       console.log("🔍 Generando texto de denuncia...")
-      console.log("📋 nombreFinalSeguro:", nombreFinalSeguro)
-      console.log("📋 sexoTexto:", sexoTexto)
-      console.log("📋 estadoCivilTexto:", estadoCivilTexto)
       
       // Extraer información adicional de las observaciones si está disponible
       const observaciones = getSafeValue(denuncia.observaciones, '')
@@ -251,9 +263,20 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       // Información personal del denunciante con validación mejorada
       const nacionalidad = getSafeValue(denuncia.denunciante_nacionalidad || denuncia.nacionalidad, 'Argentina')
       const dni = getSafeValue(denuncia.denunciante_dni || denuncia.dni, '58412986')
-      const profesion = getSafeValue(denuncia.denunciante_profesion || denuncia.profesion, 'Policia')
+      const profesion = getSafeValue(denuncia.denunciante_profesion || denuncia.profesion, 'Policía')
       const direccion = getSafeValue(denuncia.denunciante_direccion || denuncia.domicilio, 'Agüero Vera 712, F5300BDA La Rioja, Argentina')
-      const barrio = getSafeValue(denuncia.barrio, 'No especificado')
+      const barrio = getSafeValue(denuncia.barrio || denuncia.barrio_hecho || denuncia.departamento_hecho, 'No especificado')
+      
+      // Obtener división para usar en el texto
+      const divisionValue = getSafeValue(denuncia.division || denuncia.division_nombre, 'División de Robos y Hurtos')
+      
+      console.log("📋 nombreFinalSeguro:", nombreFinalSeguro)
+      console.log("📋 sexoTexto:", sexoTexto)
+      console.log("📋 estadoCivilTexto:", estadoCivilTexto)
+      console.log("📋 barrio:", barrio)
+      console.log("📋 tipoDelitoTexto:", tipoDelitoTexto)
+      console.log("📋 divisionValue:", divisionValue)
+      console.log("📋 denuncia completa:", denuncia)
       
       const datosPersonales = `${nombreFinalSeguro.toUpperCase()}, de nacionalidad ${nacionalidad}, de estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesion}, con domicilio en ${direccion} del barrio ${barrio} de esta Ciudad Capital`
       
@@ -262,21 +285,16 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       const lugarHecho = `${lugarHechoTexto}, departamento de ${departamentoHechoTexto}`
       const tipoHecho = `${tipoDelitoTexto}`
       const descripcionHecho = getSafeValue(denuncia.descripcion, 'Sin descripción')
+      
+      // Construir el texto con formato de acta policial profesional
+      const introduccion = `En la ciudad de La Rioja, capital de la provincia del mismo nombre, a los ${fechaHoraActual}, comparece por ante la Oficina de Sumarios Judiciales de ésta ${divisionValue}, dependiente de la Dirección General de Investigaciones, una persona de sexo ${sexoExtraido}, manifestando deseos de formular una denuncia, motivo por el cual se lo notifica de los términos y contenidos del ${notificacionLegal}, enterado de ello, seguidamente es interrogado por su apellido y demás circunstancias personales, dijo llamarse:`
+      
+      const datosPersonalesCompletos = `${datosPersonales}, quien invitado al acto, seguidamente DENUNCIA: ${descripcionHecho || 'Sin descripción'}.`
+      
+      const cierre = `Que es todo por lo que se da por finalizado el acto, previa lectura y ratificación, firmando al pie de la presente de conformidad por ante mí, Funcionario Policial, que CERTIFICO.`
 
-      // Obtener división para usar en el texto
-      const divisionValue = getSafeValue(denuncia.division, 'División de Robos y Hurtos')
-      
-      // Construir el texto con el formato exacto solicitado
-      const introduccion = `En la ciudad de La Rioja, capital de la provincia del mismo nombre a los ${fechaHoraActual}, comparece por ante la Oficina de Sumarios Judiciales de ésta ${divisionValue}, dependiente de la Dirección General de Investigaciones, una persona de sexo ${sexoExtraido}, manifestando deseos de formular una denuncia, motivo por el cual se lo notifica de los términos y contenidos del ${notificacionLegal}, enterado de ello, seguidamente es interrogada por su apellido y demás circunstancias personales dijo llamarse:`
-      
-      const seccionDenuncia = `DENUNCIA:`
-      
-      const descripcionDelHecho = descripcionHecho || 'Sin descripción'
-      
-      const cierre = `Que es todo por lo que se da por finalizado el acto previa lectura y ratificación, firmando al pie de la presente de conformidad por ante mi Funcionario Policial que CERTIFICO.`
-
-      // Construir el texto con el formato exacto solicitado
-      textoDenuncia = `${introduccion} ${datosPersonales}, quien invitada al acto seguidamente ${seccionDenuncia} ${descripcionDelHecho} ${cierre}`
+      // Construir el texto con párrafos separados
+      textoDenuncia = `${introduccion}\n\n${datosPersonalesCompletos}\n\n${cierre}`
       
       console.log("✅ Texto de denuncia generado exitosamente")
     } catch (textError) {
@@ -284,35 +302,68 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       throw new Error(`Error al generar texto de denuncia: ${textError instanceof Error ? textError.message : String(textError)}`)
     }
 
-    // Aplicar justificación perfecta al texto principal
-    const justifiedLines = justifyText(textoDenuncia, contentWidth, normalFontSize, pdf)
+    // Configurar fuente y tamaño
+    try {
+      pdf.setFont("times", "normal")
+      pdf.setFontSize(11)
+      console.log("✅ Fuente configurada exitosamente")
 
-    // Renderizar el texto justificado con control de paginación
-    let currentPageLines: { text: string; isJustified: boolean }[] = []
-    let tempY = yPosition
-
-    justifiedLines.forEach((line, index) => {
-      // Verificar si la línea cabe en la página actual
-      if (tempY + 6 > pageHeight - 50) {
-        // Renderizar las líneas acumuladas en la página actual
-        if (currentPageLines.length > 0) {
-          yPosition = renderJustifiedText(currentPageLines, marginSide, yPosition, contentWidth, pdf)
+      // Dividir el texto en párrafos y renderizar cada uno
+      const parrafos = textoDenuncia.split('\n\n').filter(p => p.trim())
+      console.log("📝 Párrafos a renderizar:", parrafos.length)
+      
+      for (let i = 0; i < parrafos.length; i++) {
+        const parrafo = parrafos[i].trim()
+        if (!parrafo) continue
+        
+        console.log(`📝 Renderizando párrafo ${i + 1}:`, parrafo.substring(0, 100) + "...")
+        
+        // Verificar si necesitamos una nueva página
+        if (yPosition > pageHeight - 50) {
+          pdf.addPage()
+          yPosition = marginTop + 20
         }
-
-        // Nueva página
-        pdf.addPage()
-        yPosition = marginTop + 20
-        tempY = yPosition
-        currentPageLines = []
+        
+        // Usar la función nativa de jsPDF para dividir texto y justificar
+        const sangria = 20 // Puntos de sangría para la primera línea
+        const anchoConSangria = contentWidth - sangria
+        const lines = pdf.splitTextToSize(parrafo, anchoConSangria)
+        console.log(`📝 Líneas generadas para párrafo ${i + 1}:`, lines.length)
+        
+        // Renderizar cada línea con justificación perfecta y sangría
+        lines.forEach((line: string, lineIndex: number) => {
+          // Verificar si necesitamos una nueva página
+          if (yPosition > pageHeight - 30) {
+            pdf.addPage()
+            yPosition = marginTop + 20
+          }
+          
+          // Aplicar sangría solo a la primera línea de cada párrafo
+          const posicionX = (lineIndex === 0) ? marginSide + sangria : marginSide
+          const anchoLinea = (lineIndex === 0) ? anchoConSangria : contentWidth
+          
+          // Para la última línea del párrafo, usar alineación izquierda para evitar espaciado excesivo
+          const esUltimaLinea = lineIndex === lines.length - 1
+          const alineacion = esUltimaLinea ? 'left' : 'justify'
+          
+          // Renderizar línea con justificación perfecta
+          pdf.text(line, posicionX, yPosition, { 
+            align: alineacion,
+            maxWidth: anchoLinea
+          })
+          yPosition += 6.5
+        })
+        
+        // Agregar espacio entre párrafos (excepto después del último)
+        if (i < parrafos.length - 1) {
+          yPosition += 8
+        }
       }
-
-      currentPageLines.push(line)
-      tempY += 6
-    })
-
-    // Renderizar las líneas restantes
-    if (currentPageLines.length > 0) {
-      yPosition = renderJustifiedText(currentPageLines, marginSide, yPosition, contentWidth, pdf)
+      
+      console.log("✅ Texto renderizado exitosamente")
+    } catch (renderError) {
+      console.error("❌ Error al renderizar el texto:", renderError)
+      throw new Error(`Error al renderizar el texto: ${renderError instanceof Error ? renderError.message : String(renderError)}`)
     }
 
     // Espacio para firmas
@@ -377,20 +428,32 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     }
 
     // Guardar el PDF
-    const fileName = `denuncia_formal_${denuncia.id}_${fechaActualSistema.toISOString().split("T")[0]}.pdf`
-    pdf.save(fileName)
-
-    console.log("PDF generado exitosamente:", fileName)
+    try {
+      const fileName = `denuncia_formal_${denuncia.id}_${fechaActualSistema.toISOString().split("T")[0]}.pdf`
+      console.log("💾 Guardando PDF con nombre:", fileName)
+      pdf.save(fileName)
+      console.log("✅ PDF generado exitosamente:", fileName)
+    } catch (saveError) {
+      console.error("❌ Error al guardar el PDF:", saveError)
+      throw new Error(`Error al guardar el PDF: ${saveError instanceof Error ? saveError.message : String(saveError)}`)
+    }
   } catch (error) {
-    console.error("Error detallado al generar el PDF:", error)
+    console.error("❌ Error detallado al generar el PDF:", error)
+    console.error("❌ Stack trace:", error instanceof Error ? error.stack : 'No stack trace available')
+    console.error("❌ Datos de denuncia que causaron el error:", denuncia)
 
     // Mostrar error más específico al usuario
     let errorMessage = "Error desconocido al generar el PDF"
 
     if (error instanceof Error) {
       errorMessage = `Error: ${error.message}`
+      console.error("❌ Error message:", error.message)
+      console.error("❌ Error name:", error.name)
     } else if (typeof error === "string") {
       errorMessage = error
+      console.error("❌ String error:", error)
+    } else {
+      console.error("❌ Unknown error type:", typeof error, error)
     }
 
     alert(`Error al generar el PDF: ${errorMessage}. Por favor, intente nuevamente.`)
@@ -437,52 +500,10 @@ const getBase64Image = (url: string): Promise<string> => {
   })
 }
 
-// Función personalizada para justificación perfecta con soporte para sangría
+// Función simplificada para justificación (ya no se usa, mantenida por compatibilidad)
 const justifyText = (text: string, maxWidth: number, fontSize: number, pdf: jsPDF) => {
-  pdf.setFontSize(11) // Tamaño de fuente unificado
-  
-  // Limpiar el texto y separar palabras correctamente
-  const cleanText = text.replace(/\s+/g, ' ').trim()
-  const words = cleanText.split(" ")
-  const lines: { text: string; isJustified: boolean }[] = []
-  const sangriaSize = 12.7 // 0.5 pulgadas = 1.27 cm = 12.7 mm
-  let currentLine = ""
-  let isFirstLine = true
-
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i].trim()
-    if (!word) continue // Saltar palabras vacías
-    
-    const testLine = currentLine + (currentLine ? " " : "") + word
-    // Ajustar ancho máximo para la primera línea (con sangría)
-    const currentMaxWidth = isFirstLine ? maxWidth - sangriaSize : maxWidth
-    const testWidth = pdf.getTextWidth(testLine)
-
-    if (testWidth <= currentMaxWidth) {
-      currentLine = testLine
-    } else {
-      if (currentLine) {
-        // Justificar la línea actual
-        const justifiedLine = justifyLine(currentLine, currentMaxWidth, pdf, isFirstLine ? sangriaSize : 0)
-        lines.push({ text: justifiedLine, isJustified: true })
-        currentLine = word
-        isFirstLine = false // Después de la primera línea
-      } else {
-        // Palabra muy larga, dividirla
-        lines.push({ text: word, isJustified: false })
-        currentLine = ""
-        isFirstLine = false
-      }
-    }
-  }
-
-  if (currentLine) {
-    // Justificar la última línea
-    const justifiedLine = justifyLine(currentLine, maxWidth, pdf, isFirstLine ? sangriaSize : 0)
-    lines.push({ text: justifiedLine, isJustified: true })
-  }
-
-  return lines
+  // Esta función ya no se usa, se reemplazó por la funcionalidad nativa de jsPDF
+  return [{ text: text, isJustified: true }]
 }
 
 // Función para justificar una línea individual
@@ -508,7 +529,7 @@ const justifyLine = (line: string, maxWidth: number, pdf: jsPDF, sangria: number
   return justifiedLine
 }
 
-// Función para renderizar texto justificado con sangría y manejo de títulos
+// Función simplificada para renderizar texto (ya no se usa, mantenida por compatibilidad)
 const renderJustifiedText = (
   lines: { text: string; isJustified: boolean }[],
   x: number,
@@ -516,29 +537,6 @@ const renderJustifiedText = (
   maxWidth: number,
   pdf: jsPDF,
 ) => {
-  let currentY = y
-  const sangriaSize = 12.7 // 0.5 pulgadas = 1.27 cm = 12.7 mm
-  let isFirstLineOfParagraph = true
-
-  lines.forEach((line, index) => {
-    // Determinar si es primera línea de párrafo
-    const currentX = isFirstLineOfParagraph ? x + sangriaSize : x
-    const currentMaxWidth = isFirstLineOfParagraph ? maxWidth - sangriaSize : maxWidth
-
-    // Aplicar formato unificado para todo el texto
-    pdf.setFont("times", "normal")
-    pdf.setFontSize(11)
-
-    // Renderizar texto sin justificación para evitar problemas de superposición
-    pdf.text(line.text, currentX, currentY)
-
-    // Interlineado de 1.5 (11pt * 1.5 = 16.5pt)
-    currentY += 6.5
-
-    // Después de la primera línea, las siguientes no llevan sangría
-    // hasta que encuentre un nuevo párrafo (esto se podría mejorar detectando párrafos)
-    isFirstLineOfParagraph = false
-  })
-
-  return currentY
+  // Esta función ya no se usa, se reemplazó por la funcionalidad nativa de jsPDF
+  return y
 }

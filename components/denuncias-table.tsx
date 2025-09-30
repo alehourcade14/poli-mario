@@ -47,8 +47,10 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
           denunciasFormales: denunciasFormales.length
         })
 
-        // Combinar ambas tablas de denuncias
-        const todasLasDenuncias = [...denuncias, ...denunciasFormales]
+        // Combinar ambas tablas de denuncias y marcar el tipo
+        const denunciasConTipo = denuncias.map((d: any) => ({ ...d, tipo_denuncia: 'normal' }))
+        const denunciasFormalesConTipo = denunciasFormales.map((d: any) => ({ ...d, tipo_denuncia: 'formal' }))
+        const todasLasDenuncias = [...denunciasConTipo, ...denunciasFormalesConTipo]
         
         setDenuncias(todasLasDenuncias)
         setFilteredDenuncias(todasLasDenuncias)
@@ -359,7 +361,16 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/dashboard/denuncia/${denuncia.id}`)}
+                        onClick={() => {
+                          console.log(`🔍 Redirigiendo a denuncia ID: ${denuncia.id} (tipo: ${denuncia.tipo_denuncia})`)
+                          console.log(`🔍 Datos completos de la denuncia:`, denuncia)
+                          try {
+                            router.push(`/dashboard/denuncia/${denuncia.id}`)
+                            console.log(`✅ Navegación iniciada correctamente`)
+                          } catch (error) {
+                            console.error(`❌ Error en la navegación:`, error)
+                          }
+                        }}
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         Ver

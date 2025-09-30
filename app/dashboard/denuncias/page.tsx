@@ -14,8 +14,13 @@ export default function Denuncias() {
   const router = useRouter()
 
   useEffect(() => {
+    console.log('🔍 Denuncias page - useEffect ejecutado')
+    console.log('👤 Usuario:', user)
+    console.log('⏳ Cargando usuario:', userLoading)
+    
     // Verificar autenticación
     if (!userLoading && !user) {
+      console.log('❌ No hay usuario, redirigiendo a login')
       router.push("/")
       return
     }

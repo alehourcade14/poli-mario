@@ -306,7 +306,7 @@ export async function exportCertificadoDenuncia(denuncia: any) {
     yPosition += 6
     pdf.text("DIRECCIÓN GENERAL DE INVESTIGACIONES", pageWidth / 2, yPosition, { align: "center" })
     yPosition += 6
-    pdf.text(`${denuncia.departamento?.toUpperCase() || "DEPARTAMENTO"}`, pageWidth / 2, yPosition, { align: "center" })
+    pdf.text(`${denuncia.departamento?.toUpperCase() || "DEPARTAMENTO CIBERCRIMEN"}`, pageWidth / 2, yPosition, { align: "center" })
     yPosition += 15
 
     // Título del certificado

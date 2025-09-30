@@ -76,12 +76,12 @@ export async function exportInformeDenuncia(denuncia: any, funcionarioEditor?: a
     addSeparator()
 
     addText(`Número de Denuncia: #${toSafeString(denuncia.id)}`, 11, true)
-    addText(`Fecha de Registro: ${denuncia.fecha ? new Date(denuncia.fecha).toLocaleDateString() : "No registrada"}`)
-    addText(`Estado Actual: ${toSafeString(denuncia.estado)}`)
-    addText(`Tipo de Delito: ${toSafeString(denuncia.tipo)}`)
+    addText(`Fecha de Registro: ${denuncia.created_at ? new Date(denuncia.created_at).toLocaleDateString() : denuncia.fecha ? new Date(denuncia.fecha).toLocaleDateString() : "No registrada"}`)
+    addText(`Estado Actual: ${toSafeString(denuncia.estado_nombre || denuncia.estado)}`)
+    addText(`Tipo de Delito: ${toSafeString(denuncia.tipo_delito_nombre || denuncia.tipo_delito || denuncia.tipo)}`)
 
-    if (denuncia.numExpediente) {
-      addText(`Número de Expediente: ${toSafeString(denuncia.numExpediente)}`)
+    if (denuncia.numero_expediente) {
+      addText(`Número de Expediente: ${toSafeString(denuncia.numero_expediente)}`)
     }
 
     yPosition += 5
@@ -90,11 +90,12 @@ export async function exportInformeDenuncia(denuncia: any, funcionarioEditor?: a
     addText("DATOS DEL DENUNCIANTE", 14, true)
     addSeparator()
 
-    addText(`Nombre: ${toSafeString(denuncia.denunciante)}`, 11, true)
-    addText(`DNI: ${toSafeString(denuncia.dni)}`)
+    const nombreCompleto = `${toSafeString(denuncia.denunciante_nombre || denuncia.denunciante)} ${toSafeString(denuncia.denunciante_apellido || "")}`.trim()
+    addText(`Nombre: ${nombreCompleto}`, 11, true)
+    addText(`DNI: ${toSafeString(denuncia.denunciante_dni || denuncia.dni)}`)
 
-    if (denuncia.barrioHecho) {
-      addText(`Barrio del Hecho: ${toSafeString(denuncia.barrioHecho)}`)
+    if (denuncia.lugar_hecho) {
+      addText(`Lugar del Hecho: ${toSafeString(denuncia.lugar_hecho)}`)
     }
 
     yPosition += 5
@@ -103,7 +104,7 @@ export async function exportInformeDenuncia(denuncia: any, funcionarioEditor?: a
     addText("DEPARTAMENTO ASIGNADO", 14, true)
     addSeparator()
 
-    addText(`Departamento: ${toSafeString(denuncia.departamento)}`)
+    addText(`Departamento: ${toSafeString(denuncia.departamento_nombre || denuncia.departamento)}`)
     if (denuncia.division) {
       addText(`División: ${toSafeString(denuncia.division)}`)
     }
@@ -114,16 +115,18 @@ export async function exportInformeDenuncia(denuncia: any, funcionarioEditor?: a
     addText("CRONOLOGÍA", 14, true)
     addSeparator()
 
-    if (denuncia.fechaHecho && denuncia.horaHecho) {
-      addText(`Fecha del Hecho: ${toSafeString(denuncia.fechaHecho)} a las ${toSafeString(denuncia.horaHecho)}`)
+    if (denuncia.fecha_hecho && denuncia.hora_hecho) {
+      addText(`Fecha del Hecho: ${toSafeString(denuncia.fecha_hecho)} a las ${toSafeString(denuncia.hora_hecho)}`)
     }
 
-    if (denuncia.fechaDenuncia && denuncia.horaDenuncia) {
-      addText(`Fecha de Denuncia: ${toSafeString(denuncia.fechaDenuncia)} a las ${toSafeString(denuncia.horaDenuncia)}`)
+    if (denuncia.fecha_denuncia && denuncia.hora_denuncia) {
+      addText(`Fecha de Denuncia: ${toSafeString(denuncia.fecha_denuncia)} a las ${toSafeString(denuncia.hora_denuncia)}`)
+    } else if (denuncia.created_at) {
+      addText(`Fecha de Registro: ${new Date(denuncia.created_at).toLocaleString()}`)
     }
 
-    if (denuncia.ultimaActualizacion) {
-      addText(`Última Actualización: ${new Date(denuncia.ultimaActualizacion).toLocaleString()}`)
+    if (denuncia.updated_at) {
+      addText(`Última Actualización: ${new Date(denuncia.updated_at).toLocaleString()}`)
     }
 
     yPosition += 5
@@ -140,10 +143,14 @@ export async function exportInformeDenuncia(denuncia: any, funcionarioEditor?: a
     yPosition += 5
 
     // Ubicación si existe
-    if (denuncia.ubicacion && denuncia.ubicacion.lat && denuncia.ubicacion.lng) {
+    if ((denuncia.latitud && denuncia.longitud) || (denuncia.ubicacion && denuncia.ubicacion.lat && denuncia.ubicacion.lng)) {
       addText("UBICACIÓN", 14, true)
       addSeparator()
-      addText(`Coordenadas: ${denuncia.ubicacion.lat.toFixed(6)}, ${denuncia.ubicacion.lng.toFixed(6)}`)
+      if (denuncia.latitud && denuncia.longitud) {
+        addText(`Coordenadas: ${Number(denuncia.latitud).toFixed(6)}, ${Number(denuncia.longitud).toFixed(6)}`)
+      } else if (denuncia.ubicacion) {
+        addText(`Coordenadas: ${denuncia.ubicacion.lat.toFixed(6)}, ${denuncia.ubicacion.lng.toFixed(6)}`)
+      }
       yPosition += 5
     }
 
@@ -151,12 +158,12 @@ export async function exportInformeDenuncia(denuncia: any, funcionarioEditor?: a
     addText("FUNCIONARIO RESPONSABLE", 14, true)
     addSeparator()
 
-    addText(`Creado por: ${toSafeString(denuncia.creadorNombre)}`, 11, true)
-    addText(`Departamento: ${toSafeString(denuncia.creadorDepartamento || denuncia.departamento || 'Departamento Cibercrimen')}`)
-    addText(`Fecha de Creación: ${denuncia.fecha ? new Date(denuncia.fecha).toLocaleString() : "No registrada"}`)
+    addText(`Creado por: ${toSafeString(denuncia.usuario_nombre || denuncia.creadorNombre || 'Usuario del Sistema')}`, 11, true)
+    addText(`Departamento: ${toSafeString(denuncia.departamento_nombre || denuncia.creadorDepartamento || denuncia.departamento || 'Departamento Cibercrimen')}`)
+    addText(`Fecha de Creación: ${denuncia.created_at ? new Date(denuncia.created_at).toLocaleString() : denuncia.fecha ? new Date(denuncia.fecha).toLocaleString() : "No registrada"}`)
 
     // Si hay funcionario editor (quien exporta el informe)
-    if (funcionarioEditor && funcionarioEditor.username !== denuncia.creador) {
+    if (funcionarioEditor && funcionarioEditor.username !== denuncia.usuario_id) {
       yPosition += 3
       addText(`Informe generado por: ${toSafeString(funcionarioEditor.nombre || funcionarioEditor.username)}`, 10)
       if (denuncia.actualizadoPor) {

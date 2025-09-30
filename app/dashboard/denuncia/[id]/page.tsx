@@ -12,11 +12,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, FileDown } from "lucide-react"
+import { ArrowLeft, FileDown, FileText } from "lucide-react"
 import MapSelector from "@/components/map-selector"
 import { useCurrentUser } from "@/hooks/use-current-user"
-// Importar la nueva función de informe
+// Importar las funciones de PDF
 import { exportInformeDenuncia } from "@/lib/pdf-informe-denuncia"
+import { exportDenunciaFormalToPDF } from "@/lib/pdf-denuncia-formal"
 
 export default function DetalleDenuncia() {
   const { user, loading } = useCurrentUser()
@@ -40,14 +41,21 @@ export default function DetalleDenuncia() {
   const [success, setSuccess] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [loadingDenuncia, setLoadingDenuncia] = useState(true)
+  const [isGeneratingFormalPDF, setIsGeneratingFormalPDF] = useState(false)
   const router = useRouter()
   const params = useParams()
   const id = params.id
 
   useEffect(() => {
-    if (loading) return
+    console.log(`🔍 useEffect ejecutado - user:`, user, `loading:`, loading, `id:`, id)
+    
+    if (loading) {
+      console.log(`⏳ Aún cargando...`)
+      return
+    }
 
     if (!user) {
+      console.log(`❌ No hay usuario, redirigiendo a login`)
       router.push("/")
       return
     }
@@ -62,20 +70,42 @@ export default function DetalleDenuncia() {
     // Cargar denuncia desde la API
     const fetchDenuncia = async () => {
       try {
-        const response = await fetch(`/api/denuncias/${id}`, {
+        console.log(`🔍 Intentando cargar denuncia con ID: ${id}`)
+        
+        // Intentar primero con denuncias normales
+        let response = await fetch(`/api/denuncias/${id}`, {
           method: 'GET',
           credentials: 'include'
         })
 
+        console.log(`📡 Respuesta de denuncias normales: ${response.status} ${response.statusText}`)
+
+        // Si no se encuentra en denuncias normales, intentar con denuncias formales
         if (!response.ok) {
-          throw new Error('Denuncia no encontrada')
+          console.log(`🔄 No encontrada en denuncias normales, intentando con denuncias formales...`)
+          response = await fetch(`/api/denuncias-formales/${id}`, {
+            method: 'GET',
+            credentials: 'include'
+          })
+          console.log(`📡 Respuesta de denuncias formales: ${response.status} ${response.statusText}`)
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error(`❌ Error de la API:`, errorData)
+          throw new Error(errorData.error || 'Denuncia no encontrada')
         }
 
         const data = await response.json()
+        console.log(`✅ Datos de la denuncia cargados:`, data)
+        console.log(`📋 tipo_delito_nombre:`, data.tipo_delito_nombre)
+        console.log(`📋 tipo_delito:`, data.tipo_delito)
+        console.log(`📋 division:`, data.division)
+        console.log(`📋 departamento_nombre:`, data.departamento_nombre)
         setDenuncia(data)
         
         // Mapear los datos de la API a los campos del formulario
-        setFormData({
+        const formDataMapped = {
           denunciante_nombre: data.denunciante_nombre || "",
           denunciante_apellido: data.denunciante_apellido || "",
           denunciante_dni: data.denunciante_dni || "",
@@ -89,7 +119,13 @@ export default function DetalleDenuncia() {
           lugar_hecho: data.lugar_hecho || "",
           numero_expediente: data.numero_expediente || "",
           ubicacion: data.latitud && data.longitud && !isNaN(Number(data.latitud)) && !isNaN(Number(data.longitud)) ? { lat: Number(data.latitud), lng: Number(data.longitud) } : null,
-        })
+        }
+        
+        console.log(`📋 Datos mapeados al formulario:`, formDataMapped)
+        console.log(`📋 tipo_delito mapeado:`, formDataMapped.tipo_delito)
+        console.log(`📋 division mapeada:`, formDataMapped.division)
+        
+        setFormData(formDataMapped)
       } catch (error) {
         console.error("Error al cargar denuncia:", error)
         setError("Error al cargar la denuncia")
@@ -183,7 +219,6 @@ export default function DetalleDenuncia() {
     }
   }
 
-  // Reemplazar la función handleExportPDF con:
   const handleExportPDF = async () => {
     if (!denuncia) return
 
@@ -192,44 +227,58 @@ export default function DetalleDenuncia() {
       if (isEditing) { 
         // Validar campos antes de guardar
         if (
-          !formData.denunciante ||
-          !formData.dni ||
-          !formData.tipo ||
-          !formData.departamento ||
+          !formData.denunciante_nombre ||
+          !formData.denunciante_apellido ||
+          !formData.denunciante_dni ||
+          !formData.tipo_delito ||
+          !formData.departamento_nombre ||
           !formData.division ||
           !formData.descripcion ||
-          !formData.fechaDenuncia ||
-          !formData.horaDenuncia ||
-          !formData.fechaHecho ||
-          !formData.horaHecho ||
-          !formData.barrioHecho ||
-          !formData.numExpediente
+          !formData.fecha_hecho ||
+          !formData.hora_hecho ||
+          !formData.lugar_hecho ||
+          !formData.numero_expediente
         ) {
           setError("Complete todos los campos antes de generar el informe")
           return
         }
 
-        // Guardar cambios
-        const denuncias = JSON.parse(localStorage.getItem("denuncias") || "[]")
-        const index = denuncias.findIndex((d: any) => d.id.toString() === id)
+        // Guardar cambios primero
+        const response = await fetch(`/api/denuncias/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            denunciante_nombre: formData.denunciante_nombre,
+            denunciante_apellido: formData.denunciante_apellido,
+            denunciante_dni: formData.denunciante_dni,
+            tipo_delito: formData.tipo_delito,
+            departamento_nombre: formData.departamento_nombre,
+            division: formData.division,
+            descripcion: formData.descripcion,
+            fecha_hecho: formData.fecha_hecho,
+            hora_hecho: formData.hora_hecho,
+            lugar_hecho: formData.lugar_hecho,
+            numero_expediente: formData.numero_expediente,
+            latitud: formData.ubicacion?.lat || null,
+            longitud: formData.ubicacion?.lng || null,
+          })
+        })
 
-        if (index !== -1) {
-          const denunciaActualizada = {
-            ...denuncias[index],
-            ...formData,
-            ultimaActualizacion: new Date().toISOString(),
-            actualizadoPor: user.username,
-          }
-
-          denuncias[index] = denunciaActualizada
-          localStorage.setItem("denuncias", JSON.stringify(denuncias))
-          setDenuncia(denunciaActualizada)
-          setSuccess(true)
-          setIsEditing(false)
-
-          // Generar informe con datos actualizados
-          await exportInformeDenuncia(denunciaActualizada, user)
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Error al actualizar la denuncia')
         }
+
+        const updatedDenuncia = await response.json()
+        setDenuncia(updatedDenuncia)
+        setSuccess(true)
+        setIsEditing(false)
+
+        // Generar informe con datos actualizados
+        await exportInformeDenuncia(updatedDenuncia, user)
       } else {
         // Generar informe con datos actuales
         await exportInformeDenuncia(denuncia, user)
@@ -237,6 +286,45 @@ export default function DetalleDenuncia() {
     } catch (error) {
       console.error("Error al generar informe:", error)
       setError("Error al generar el informe PDF")
+    }
+  }
+
+  const handleExportFormalPDF = async () => {
+    if (!denuncia) return
+
+    setIsGeneratingFormalPDF(true)
+    setError("")
+
+    try {
+      console.log("📋 Generando PDF de denuncia formal para denuncia:", denuncia.id)
+      
+      // Preparar los datos de la denuncia para el formato formal
+      const denunciaFormalData = {
+        ...denuncia,
+        // Asegurar que los campos estén en el formato esperado por la función de PDF formal
+        denunciante: `${denuncia.denunciante_nombre || ''} ${denuncia.denunciante_apellido || ''}`.trim(),
+        dni: denuncia.denunciante_dni || denuncia.dni,
+        tipo_delito: denuncia.tipo_delito_nombre || denuncia.tipo_delito,
+        departamento: denuncia.departamento_nombre || denuncia.departamento,
+        numero_expediente: denuncia.numero_expediente,
+        descripcion: denuncia.descripcion,
+        lugar_hecho: denuncia.lugar_hecho,
+        fecha_hecho: denuncia.fecha_hecho,
+        hora_hecho: denuncia.hora_hecho,
+        latitud: denuncia.latitud,
+        longitud: denuncia.longitud,
+        // Agregar campos adicionales que podrían estar en observaciones
+        observaciones: denuncia.observaciones || `División: ${denuncia.division || 'No especificada'}`
+      }
+
+      await exportDenunciaFormalToPDF(denunciaFormalData)
+      
+      console.log("✅ PDF de denuncia formal generado exitosamente")
+    } catch (error) {
+      console.error("❌ Error al generar PDF de denuncia formal:", error)
+      setError("Error al generar el PDF de denuncia formal")
+    } finally {
+      setIsGeneratingFormalPDF(false)
     }
   }
 
@@ -263,10 +351,22 @@ export default function DetalleDenuncia() {
             Volver
           </Button>
           <h1 className="text-2xl font-bold">Denuncia #{denuncia.id}</h1>
-          <div className="ml-auto">
-            <Button variant="outline" onClick={handleExportPDF} className="mr-2">
+          <div className="ml-auto flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleExportPDF} 
+              disabled={isGeneratingFormalPDF}
+            >
               <FileDown className="h-4 w-4 mr-2" />
               Exportar PDF
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleExportFormalPDF}
+              disabled={isGeneratingFormalPDF}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              {isGeneratingFormalPDF ? "Generando..." : "Denuncia Formal PDF"}
             </Button>
             {!isEditing && user.rol === "admin" && <Button onClick={() => setIsEditing(true)}>Editar</Button>}
           </div>

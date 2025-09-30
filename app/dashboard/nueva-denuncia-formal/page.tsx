@@ -131,6 +131,7 @@ export default function NuevaDenunciaFormal() {
           descripcion: formData.descripcion,
           tipo_delito: formData.tipo || 'No especificado',
           departamento: formData.departamento || 'Departamento Cibercrimen',
+          division: formData.division || 'División de Robos y Hurtos',
           observaciones: `Edad: ${formData.edad}, Sexo: ${formData.sexo}, Instrucción: ${formData.instruccion}`
         })
       })
@@ -254,6 +255,7 @@ export default function NuevaDenunciaFormal() {
           descripcion: formData.descripcion,
           tipo_delito: formData.tipo || 'No especificado',
           departamento: formData.departamento || 'Departamento Cibercrimen',
+          division: formData.division || 'División de Robos y Hurtos',
           observaciones: `Edad: ${formData.edad}, Sexo: ${formData.sexo}, Instrucción: ${formData.instruccion}`
         })
       })
