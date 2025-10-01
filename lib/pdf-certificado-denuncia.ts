@@ -448,8 +448,10 @@ export async function exportCertificadoDenuncia(denuncia: any) {
       })
     }
 
-    // Guardar el PDF
-    const nombreArchivo = `certificado_denuncia_${(denuncia.denunciante || "sin_nombre").replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`
+    // Guardar el PDF con DNI del denunciante para evitar reemplazos
+    const dniDenunciante = denuncia.denunciante_dni || denuncia.dni || "sin_dni"
+    const nombreDenunciante = (denuncia.denunciante_nombre || denuncia.denunciante || "sin_nombre").replace(/\s+/g, "_")
+    const nombreArchivo = `certificado_denuncia_${nombreDenunciante}_DNI_${dniDenunciante}_${new Date().toISOString().split("T")[0]}.pdf`
     pdf.save(nombreArchivo)
 
     return true // Indicar éxito

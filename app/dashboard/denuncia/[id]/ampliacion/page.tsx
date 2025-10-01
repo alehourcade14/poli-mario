@@ -32,19 +32,34 @@ export default function AmpliacionDenuncia() {
       return
     }
 
-    // Cargar denuncia desde la API
+    // Cargar denuncia desde la API (tanto normales como formales)
     const fetchDenuncia = async () => {
       try {
-        const response = await fetch(`/api/denuncias/${id}`, {
+        console.log(`🔍 Intentando cargar denuncia con ID: ${id} para ampliación`)
+        
+        let response = await fetch(`/api/denuncias/${id}`, {
           method: 'GET',
           credentials: 'include'
         })
+        console.log(`📡 Respuesta de denuncias normales: ${response.status} ${response.statusText}`)
 
         if (!response.ok) {
-          throw new Error('Denuncia no encontrada')
+          console.log(`🔄 No encontrada en denuncias normales, intentando con denuncias formales...`)
+          response = await fetch(`/api/denuncias-formales/${id}`, {
+            method: 'GET',
+            credentials: 'include'
+          })
+          console.log(`📡 Respuesta de denuncias formales: ${response.status} ${response.statusText}`)
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error(`❌ Error de la API:`, errorData)
+          throw new Error(errorData.error || 'Denuncia no encontrada')
         }
 
         const data = await response.json()
+        console.log(`✅ Datos de la denuncia cargados para ampliación:`, data)
         setDenuncia(data)
       } catch (error) {
         console.error("Error al cargar denuncia:", error)
@@ -74,7 +89,13 @@ export default function AmpliacionDenuncia() {
     }
 
     try {
-      const response = await fetch(`/api/denuncias/${id}/ampliacion`, {
+      // Determinar si es una denuncia formal o normal basándose en los datos cargados
+      const isFormal = denuncia.denunciante_nacionalidad !== undefined || denuncia.tipo_denuncia === 'formal'
+      const endpoint = isFormal ? `/api/denuncias-formales/${id}/ampliacion` : `/api/denuncias/${id}/ampliacion`
+      
+      console.log(`🔍 Enviando ampliación a endpoint: ${endpoint} (tipo: ${isFormal ? 'formal' : 'normal'})`)
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,6 +112,7 @@ export default function AmpliacionDenuncia() {
       }
 
       setSuccess(true)
+      console.log(`✅ Ampliación agregada exitosamente`)
 
       // Redireccionar después de 2 segundos
       setTimeout(() => {

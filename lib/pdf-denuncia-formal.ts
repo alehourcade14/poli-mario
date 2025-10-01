@@ -427,9 +427,11 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       )
     }
 
-    // Guardar el PDF
+    // Guardar el PDF con DNI del denunciante para evitar reemplazos
     try {
-      const fileName = `denuncia_formal_${denuncia.id}_${fechaActualSistema.toISOString().split("T")[0]}.pdf`
+      const dniDenunciante = denuncia.denunciante_dni || denuncia.dni || "sin_dni"
+      const nombreDenunciante = (denuncia.denunciante_nombre || denuncia.denunciante || "sin_nombre").replace(/\s+/g, "_")
+      const fileName = `denuncia_formal_${nombreDenunciante}_DNI_${dniDenunciante}_${fechaActualSistema.toISOString().split("T")[0]}.pdf`
       console.log("💾 Guardando PDF con nombre:", fileName)
       pdf.save(fileName)
       console.log("✅ PDF generado exitosamente:", fileName)

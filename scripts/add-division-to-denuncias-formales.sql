@@ -10,3 +10,5 @@ WHERE division IS NULL;
 -- Hacer el campo NOT NULL después de actualizar
 ALTER TABLE denuncias_formales 
 ALTER COLUMN division SET NOT NULL;
+
+
