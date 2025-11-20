@@ -31,6 +31,7 @@ export default function Usuarios() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    confirmPassword: "",
     nombre: "",
     apellido: "",
     departamento_nombre: "",
@@ -107,6 +108,12 @@ export default function Usuarios() {
       return
     }
 
+    // Validar que las contraseñas coincidan
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden")
+      return
+    }
+
     try {
       const response = await fetch('/api/usuarios', {
         method: 'POST',
@@ -130,6 +137,7 @@ export default function Usuarios() {
       setFormData({
         email: "",
         password: "",
+        confirmPassword: "",
         nombre: "",
         apellido: "",
         departamento_nombre: "",
@@ -274,6 +282,19 @@ export default function Usuarios() {
                       type="password"
                       className="col-span-3"
                       value={formData.password}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="confirmPassword" className="text-right">
+                      Confirmar Contraseña
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      className="col-span-3"
+                      value={formData.confirmPassword}
                       onChange={handleChange}
                     />
                   </div>

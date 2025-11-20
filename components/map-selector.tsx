@@ -229,29 +229,70 @@ export default function MapSelector({
 
   // Si hay un error al cargar la API de Google Maps, mostrar un formulario alternativo
   if (loadError) {
-    const isApiKeyError = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === "tu-google-maps-api-key-aqui" || 
-                         !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-                         process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === ""
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+    const isApiKeyError = apiKey === "tu-google-maps-api-key-aqui" || 
+                         !apiKey ||
+                         apiKey === ""
+    
+    // Detectar el tipo de error específico
+    const errorMessage = loadError.message || ""
+    const isRequestDenied = errorMessage.includes("REQUEST_DENIED") || errorMessage.includes("not authorized")
+    const isInvalidKey = errorMessage.includes("INVALID_KEY") || errorMessage.includes("invalid")
+    const isOverLimit = errorMessage.includes("OVER_QUERY_LIMIT")
     
     return (
       <Card>
         <CardContent className="p-4">
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error al cargar el mapa</AlertTitle>
+            <AlertTitle>Error al cargar el mapa de Google Maps</AlertTitle>
             <AlertDescription>
               {isApiKeyError ? (
                 <div>
-                  <p className="mb-2">Google Maps API no está configurada correctamente.</p>
+                  <p className="mb-2 font-semibold">Google Maps API Key no está configurada.</p>
                   <p className="mb-2">Para solucionarlo:</p>
-                  <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>Ejecuta el script: <code className="bg-gray-100 px-1 rounded">setup-google-maps.bat</code></li>
-                    <li>O configura manualmente la variable NEXT_PUBLIC_GOOGLE_MAPS_API_KEY en .env.local</li>
+                  <ol className="list-decimal list-inside space-y-1 text-sm mb-2">
+                    <li>Crea o edita el archivo <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">.env.local</code> en la raíz del proyecto</li>
+                    <li>Agrega la línea: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=tu-api-key-aqui</code></li>
+                    <li>Reinicia el servidor de desarrollo (Ctrl+C y luego npm run dev)</li>
+                  </ol>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                    💡 Obtén tu API Key en: <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Google Cloud Console</a>
+                  </p>
+                </div>
+              ) : isRequestDenied ? (
+                <div>
+                  <p className="mb-2 font-semibold">La API Key está restringida o las APIs no están habilitadas.</p>
+                  <p className="mb-2">Verifica en Google Cloud Console:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-sm mb-2">
+                    <li>Que las APIs estén habilitadas: <strong>Maps JavaScript API</strong>, <strong>Places API</strong>, <strong>Geocoding API</strong></li>
+                    <li>Que las restricciones de dominio permitan <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">localhost:3000</code></li>
+                    <li>Que la facturación esté habilitada en tu proyecto</li>
+                  </ol>
+                </div>
+              ) : isInvalidKey ? (
+                <div>
+                  <p className="mb-2 font-semibold">La API Key no es válida o ha expirado.</p>
+                  <p className="mb-2">Para solucionarlo:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-sm mb-2">
+                    <li>Ve a <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Google Cloud Console</a></li>
+                    <li>Verifica que la API Key esté activa y no haya expirado</li>
+                    <li>Crea una nueva API Key si es necesario</li>
+                    <li>Actualiza el archivo <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">.env.local</code> con la nueva API Key</li>
                     <li>Reinicia el servidor de desarrollo</li>
                   </ol>
                 </div>
+              ) : isOverLimit ? (
+                <div>
+                  <p className="mb-2 font-semibold">Se ha excedido el límite de consultas de la API.</p>
+                  <p className="mb-2 text-sm">Verifica en Google Cloud Console los límites de cuota y la facturación.</p>
+                </div>
               ) : (
-                "No se pudo cargar el mapa de Google. Por favor, ingrese las coordenadas manualmente o contacte al administrador."
+                <div>
+                  <p className="mb-2">No se pudo cargar el mapa de Google.</p>
+                  <p className="mb-2 text-sm">Error: {errorMessage}</p>
+                  <p className="text-sm">Puedes ingresar las coordenadas manualmente a continuación.</p>
+                </div>
               )}
             </AlertDescription>
           </Alert>

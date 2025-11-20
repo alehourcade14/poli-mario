@@ -12,3 +12,7 @@ ALTER TABLE denuncias_formales
 ALTER COLUMN division SET NOT NULL;
 
 
+
+
+
+

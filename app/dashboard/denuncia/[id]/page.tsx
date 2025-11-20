@@ -12,12 +12,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, FileDown, FileText } from "lucide-react"
+import { ArrowLeft, FileDown, FileText, FileType } from "lucide-react"
 import MapSelector from "@/components/map-selector"
 import { useCurrentUser } from "@/hooks/use-current-user"
 // Importar las funciones de PDF
 import { exportInformeDenuncia } from "@/lib/pdf-informe-denuncia"
 import { exportDenunciaFormalToPDF } from "@/lib/pdf-denuncia-formal"
+import { exportDenunciaFormalToDocx } from "@/lib/docx-denuncia-formal"
 
 export default function DetalleDenuncia() {
   const { user, loading } = useCurrentUser()
@@ -42,6 +43,7 @@ export default function DetalleDenuncia() {
   const [isEditing, setIsEditing] = useState(false)
   const [loadingDenuncia, setLoadingDenuncia] = useState(true)
   const [isGeneratingFormalPDF, setIsGeneratingFormalPDF] = useState(false)
+  const [isGeneratingDocx, setIsGeneratingDocx] = useState(false)
   const router = useRouter()
   const params = useParams()
   const id = params.id
@@ -328,6 +330,28 @@ export default function DetalleDenuncia() {
     }
   }
 
+  const handleExportDocx = async () => {
+    if (!denuncia) return
+
+    setIsGeneratingDocx(true)
+    setError("")
+
+    try {
+      console.log("📋 Generando Word de denuncia formal para denuncia:", denuncia.id)
+      
+      // Usar exactamente los mismos datos que se usan para el PDF formal
+      // No hacer transformaciones adicionales, dejar que la función de Word maneje los datos
+      await exportDenunciaFormalToDocx(denuncia)
+      
+      console.log("✅ Word de denuncia formal generado exitosamente")
+    } catch (error) {
+      console.error("❌ Error al generar Word de denuncia formal:", error)
+      setError("Error al generar el Word de denuncia formal")
+    } finally {
+      setIsGeneratingDocx(false)
+    }
+  }
+
   if (loading || loadingDenuncia) {
     return (
       <DashboardLayout user={user}>
@@ -355,18 +379,26 @@ export default function DetalleDenuncia() {
             <Button 
               variant="outline" 
               onClick={handleExportPDF} 
-              disabled={isGeneratingFormalPDF}
+              disabled={isGeneratingFormalPDF || isGeneratingDocx}
             >
               <FileDown className="h-4 w-4 mr-2" />
-              Exportar PDF
+              Exportar Detalles de la Denuncia
             </Button>
             <Button 
               variant="outline" 
               onClick={handleExportFormalPDF}
-              disabled={isGeneratingFormalPDF}
+              disabled={isGeneratingFormalPDF || isGeneratingDocx}
             >
               <FileText className="h-4 w-4 mr-2" />
               {isGeneratingFormalPDF ? "Generando..." : "Denuncia Formal PDF"}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleExportDocx}
+              disabled={isGeneratingFormalPDF || isGeneratingDocx}
+            >
+              <FileType className="h-4 w-4 mr-2" />
+              {isGeneratingDocx ? "Generando..." : "Denuncia Formal a Word"}
             </Button>
             {!isEditing && user.rol === "admin" && <Button onClick={() => setIsEditing(true)}>Editar</Button>}
           </div>

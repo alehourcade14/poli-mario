@@ -202,14 +202,41 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
   }
 
   if (loadError) {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+    const isApiKeyError = apiKey === "tu-google-maps-api-key-aqui" || !apiKey || apiKey === ""
+    const errorMessage = loadError.message || ""
+    const isRequestDenied = errorMessage.includes("REQUEST_DENIED") || errorMessage.includes("not authorized")
+    const isInvalidKey = errorMessage.includes("INVALID_KEY") || errorMessage.includes("invalid")
+    
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error al cargar el mapa</AlertTitle>
+        <AlertTitle>Error al cargar el mapa de Google Maps</AlertTitle>
         <AlertDescription>
-          No se pudo cargar el mapa de Google. Por favor, verifique su conexión a internet o contacte al administrador.
-          <br />
-          <strong>Error:</strong> {loadError.message}
+          {isApiKeyError ? (
+            <div>
+              <p className="mb-2">Google Maps API Key no está configurada.</p>
+              <p className="text-sm">Crea el archivo <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">.env.local</code> y agrega: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=tu-api-key</code></p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                💡 Ver <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Google Cloud Console</a> para obtener una API Key
+              </p>
+            </div>
+          ) : isRequestDenied ? (
+            <div>
+              <p className="mb-2">La API Key está restringida o las APIs no están habilitadas.</p>
+              <p className="text-sm">Verifica en Google Cloud Console que las APIs estén habilitadas y que las restricciones permitan <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">localhost:3000</code></p>
+            </div>
+          ) : isInvalidKey ? (
+            <div>
+              <p className="mb-2">La API Key no es válida o ha expirado.</p>
+              <p className="text-sm">Verifica en Google Cloud Console y actualiza el archivo <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">.env.local</code></p>
+            </div>
+          ) : (
+            <div>
+              <p className="mb-2">No se pudo cargar el mapa de Google.</p>
+              <p className="text-sm"><strong>Error:</strong> {errorMessage}</p>
+            </div>
+          )}
         </AlertDescription>
       </Alert>
     )
@@ -222,8 +249,12 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
         <Info className="h-4 w-4" />
         <AlertTitle>Configuración requerida</AlertTitle>
         <AlertDescription>
-          Para utilizar el mapa general, es necesario configurar una API key de Google Maps válida con los servicios de
-          Maps JavaScript API habilitados.
+          <p className="mb-2">Para utilizar el mapa general, es necesario configurar una API key de Google Maps válida.</p>
+          <p className="text-sm">Crea el archivo <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">.env.local</code> y agrega:</p>
+          <code className="block bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded mt-1 text-xs">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=tu-api-key-aqui</code>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+            💡 Obtén tu API Key en: <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Google Cloud Console</a>
+          </p>
         </AlertDescription>
       </Alert>
     )

@@ -158,8 +158,8 @@ export async function POST(request: Request) {
         fecha_hecho, hora_hecho, lugar_hecho, departamento_hecho, latitud, longitud,
         descripcion, circunstancias, testigos, elementos_sustraidos, valor_estimado,
         denunciado_nombre, denunciado_apellido, denunciado_dni, denunciado_descripcion,
-        tipo_delito_id, estado_id, departamento_id, usuario_id, observaciones
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+        tipo_delito_id, estado_id, departamento_id, usuario_id, observaciones, division
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
       RETURNING *
     `, [
       numeroExpediente,
@@ -191,10 +191,41 @@ export async function POST(request: Request) {
       estadoId,
       departamentoId,
       decoded.id,
-      data.observaciones || ''
+      data.observaciones || '',
+      data.division || 'División de Robos y Hurtos'
     ])
 
-    return new NextResponse(JSON.stringify(result.rows[0]), {
+    // Obtener la denuncia creada con los datos relacionados (departamento_nombre, etc.)
+    const denunciaCreada = result.rows[0]
+    const denunciaCompleta = await query(`
+      SELECT 
+        df.*,
+        de.nombre as departamento_nombre,
+        es.nombre as estado_nombre,
+        COALESCE(td.nombre, 'Delito no especificado') as tipo_delito_nombre,
+        u.nombre || ' ' || u.apellido as creador_nombre,
+        COALESCE(df.division, 'División de Robos y Hurtos') as division
+      FROM denuncias_formales df
+      LEFT JOIN departamentos de ON df.departamento_id = de.id
+      LEFT JOIN estados_denuncias es ON df.estado_id = es.id
+      LEFT JOIN tipos_delitos td ON df.tipo_delito_id = td.id
+      LEFT JOIN usuarios u ON df.usuario_id = u.id
+      WHERE df.id = $1
+    `, [denunciaCreada.id])
+
+    // Si no se encontró el departamento_nombre en el JOIN, usar el que se envió en el formulario
+    const denunciaFinal = denunciaCompleta.rows[0] || denunciaCreada
+    if (!denunciaFinal.departamento_nombre && data.departamento) {
+      denunciaFinal.departamento_nombre = data.departamento
+    }
+    if (!denunciaFinal.division && data.division) {
+      denunciaFinal.division = data.division
+    }
+    if (!denunciaFinal.tipo_delito_nombre && data.tipo_delito) {
+      denunciaFinal.tipo_delito_nombre = data.tipo_delito
+    }
+
+    return new NextResponse(JSON.stringify(denunciaFinal), {
       status: 201,
       headers: { 'Content-Type': 'application/json' },
     })
