@@ -16,6 +16,7 @@ export interface User {
   activo: boolean
   created_at: Date
   updated_at: Date
+  foto_perfil?: string
 }
 
 export interface AuthResult {
@@ -135,7 +136,8 @@ export async function getUserById(id: string): Promise<User | null> {
       departamento_id: user.departamento_id,
       activo: user.activo,
       created_at: user.created_at,
-      updated_at: user.updated_at
+      updated_at: user.updated_at,
+      foto_perfil: user.foto_perfil
     }
   } catch (error) {
     console.error('Error obteniendo usuario:', error)

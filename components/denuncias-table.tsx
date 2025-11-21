@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Search, FileText, FilePlus, Edit, Trash2, Award, CheckCircle } from "lucide-react"
+import { Search, FileText, FilePlus, Edit, Trash2, Award, CheckCircle, CheckSquare, Square } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useCurrentUser } from "@/hooks/use-current-user"
 
@@ -24,9 +24,14 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
   const [division, setDivision] = useState("")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [selectedDenuncias, setSelectedDenuncias] = useState<Set<number>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
   const { user: currentUser } = useCurrentUser()
   const { toast } = useToast()
+
+  // Verificar si el usuario es administrador
+  const isAdmin = currentUser?.rol === "admin" || currentUser?.rol === "administrador"
 
   useEffect(() => {
     const fetchDenuncias = async () => {
@@ -140,36 +145,189 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
     }
   }
 
-  const handleDeleteDenuncia = (id: number) => {
-    if (window.confirm("¿Está seguro de que desea eliminar esta denuncia? Esta acción no se puede deshacer.")) {
+  const handleDeleteDenuncia = async (id: number, tipoDenunciaItem: string = 'normal') => {
+    if (!window.confirm("¿Está seguro de que desea eliminar esta denuncia? Esta acción no se puede deshacer.")) {
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      const endpoint = tipoDenunciaItem === 'formal' 
+        ? `/api/denuncias-formales/${id}` 
+        : `/api/denuncias/${id}`
+
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al eliminar la denuncia')
+      }
+
+      // Actualizar la lista de denuncias
       const updatedDenuncias = denuncias.filter((d) => d.id !== id)
-      localStorage.setItem("denuncias", JSON.stringify(updatedDenuncias))
       setDenuncias(updatedDenuncias)
-      setFilteredDenuncias(
-        updatedDenuncias.filter((d) => {
-          // Aplicar los mismos filtros actuales
-          let filtered = [d]
-          if (searchTerm) {
-            filtered = filtered.filter(
-              (d) =>
-                d.denunciante?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (d.dni && d.dni.includes(searchTerm)) ||
-                d.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                d.id?.toString().includes(searchTerm),
-            )
-          }
-          if (tipoDenuncia && tipoDenuncia !== "todos") {
-            filtered = filtered.filter((d) => d.tipo === tipoDenuncia)
-          }
-          if (departamento && departamento !== "todos") {
-            filtered = filtered.filter((d) => d.departamento === departamento)
-          }
-          if (division && division !== "todas") {
-            filtered = filtered.filter((d) => d.division === division)
-          }
-          return filtered.length > 0
-        }),
-      )
+      
+      // Aplicar filtros actuales
+      let filtered = updatedDenuncias
+      if (searchTerm) {
+        filtered = filtered.filter(
+          (d) =>
+            d.denunciante_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.denunciante_apellido?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (d.denunciante_dni && d.denunciante_dni.includes(searchTerm)) ||
+            d.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.id?.toString().includes(searchTerm) ||
+            (d.lugar_hecho && d.lugar_hecho.toLowerCase().includes(searchTerm.toLowerCase())),
+        )
+      }
+      if (tipoDenuncia && tipoDenuncia !== "todos") {
+        filtered = filtered.filter((d) => d.tipo_delito === tipoDenuncia)
+      }
+      if (departamento && departamento !== "todos") {
+        filtered = filtered.filter((d) => d.departamento_nombre === departamento)
+      }
+      if (division && division !== "todos") {
+        filtered = filtered.filter((d) => d.departamento_nombre === division)
+      }
+      setFilteredDenuncias(filtered)
+
+      // Remover de selección si estaba seleccionada
+      const newSelected = new Set(selectedDenuncias)
+      newSelected.delete(id)
+      setSelectedDenuncias(newSelected)
+
+      toast({
+        title: "Denuncia eliminada",
+        description: "La denuncia ha sido eliminada correctamente.",
+        variant: "default",
+      })
+
+      // Notificar que las denuncias se actualizaron
+      if (onDenunciasUpdate) {
+        onDenunciasUpdate()
+      }
+    } catch (error: any) {
+      console.error('Error al eliminar denuncia:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Error al eliminar la denuncia",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleToggleSelect = (id: number) => {
+    const newSelected = new Set(selectedDenuncias)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedDenuncias(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedDenuncias.size === filteredDenuncias.length) {
+      setSelectedDenuncias(new Set())
+    } else {
+      setSelectedDenuncias(new Set(filteredDenuncias.map(d => d.id)))
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedDenuncias.size === 0) {
+      toast({
+        title: "Sin selección",
+        description: "Por favor selecciona al menos una denuncia para eliminar.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const count = selectedDenuncias.size
+    if (!window.confirm(`¿Está seguro de que desea eliminar ${count} denuncia(s)? Esta acción no se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      const deletePromises = Array.from(selectedDenuncias).map(async (id) => {
+        const denuncia = denuncias.find(d => d.id === id)
+        const tipo = denuncia?.tipo_denuncia || 'normal'
+        const endpoint = tipo === 'formal' 
+          ? `/api/denuncias-formales/${id}` 
+          : `/api/denuncias/${id}`
+
+        const response = await fetch(endpoint, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(`Error al eliminar denuncia ${id}: ${errorData.error || 'Error desconocido'}`)
+        }
+
+        return id
+      })
+
+      const deletedIds = await Promise.all(deletePromises)
+      
+      // Actualizar la lista de denuncias
+      const updatedDenuncias = denuncias.filter((d) => !deletedIds.includes(d.id))
+      setDenuncias(updatedDenuncias)
+      
+      // Aplicar filtros actuales
+      let filtered = updatedDenuncias
+      if (searchTerm) {
+        filtered = filtered.filter(
+          (d) =>
+            d.denunciante_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.denunciante_apellido?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (d.denunciante_dni && d.denunciante_dni.includes(searchTerm)) ||
+            d.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.id?.toString().includes(searchTerm) ||
+            (d.lugar_hecho && d.lugar_hecho.toLowerCase().includes(searchTerm.toLowerCase())),
+        )
+      }
+      if (tipoDenuncia && tipoDenuncia !== "todos") {
+        filtered = filtered.filter((d) => d.tipo_delito === tipoDenuncia)
+      }
+      if (departamento && departamento !== "todos") {
+        filtered = filtered.filter((d) => d.departamento_nombre === departamento)
+      }
+      if (division && division !== "todos") {
+        filtered = filtered.filter((d) => d.departamento_nombre === division)
+      }
+      setFilteredDenuncias(filtered)
+
+      // Limpiar selección
+      setSelectedDenuncias(new Set())
+
+      toast({
+        title: "Denuncias eliminadas",
+        description: `${count} denuncia(s) han sido eliminadas correctamente.`,
+        variant: "default",
+      })
+
+      // Notificar que las denuncias se actualizaron
+      if (onDenunciasUpdate) {
+        onDenunciasUpdate()
+      }
+    } catch (error: any) {
+      console.error('Error al eliminar denuncias:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Error al eliminar las denuncias",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -258,6 +416,24 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
 
   return (
     <div className="space-y-4">
+      {/* Botón de eliminar seleccionadas - Solo para administradores */}
+      {isAdmin && selectedDenuncias.size > 0 && (
+        <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+          <span className="text-sm font-medium text-red-800 dark:text-red-200">
+            {selectedDenuncias.size} denuncia(s) seleccionada(s)
+          </span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDeleteSelected}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {isDeleting ? "Eliminando..." : `Eliminar ${selectedDenuncias.size} seleccionada(s)`}
+          </Button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
@@ -283,6 +459,7 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
               <SelectItem value="Paradero">Paradero</SelectItem>
               <SelectItem value="Sustracción de Automotor">Sustracción de Automotor</SelectItem>
               <SelectItem value="Estafa">Estafa</SelectItem>
+              <SelectItem value="Amenaza">Amenaza</SelectItem>
               <SelectItem value="Homicidio">Homicidio</SelectItem>
               <SelectItem value="Suicidio">Suicidio</SelectItem>
               <SelectItem value="Otro">Otro</SelectItem>
@@ -310,7 +487,6 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
               <SelectItem value="Departamento Sustracción de Automotores">Departamento Sustracción de Automotores</SelectItem>
               <SelectItem value="Departamento Delitos Contra la Propiedad">Departamento Delitos Contra la Propiedad</SelectItem>
               <SelectItem value="Departamento Delitos contra las Personas">Departamento Delitos contra las Personas</SelectItem>
-              <SelectItem value="Departamento Seguridad Personal">Departamento Seguridad Personal</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -320,6 +496,21 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
         <Table>
           <TableHeader>
             <TableRow>
+              {isAdmin && (
+                <TableHead className="w-[50px]">
+                  <button
+                    onClick={handleSelectAll}
+                    className="flex items-center justify-center"
+                    title="Seleccionar todas"
+                  >
+                    {selectedDenuncias.size === filteredDenuncias.length && filteredDenuncias.length > 0 ? (
+                      <CheckSquare className="h-5 w-5 text-amber-600" />
+                    ) : (
+                      <Square className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
+                </TableHead>
+              )}
               <TableHead className="w-[60px]">ID</TableHead>
               <TableHead>Denunciante</TableHead>
               <TableHead className="hidden md:table-cell">DNI</TableHead>
@@ -334,6 +525,21 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
             {filteredDenuncias.length > 0 ? (
               filteredDenuncias.map((denuncia) => (
                 <TableRow key={denuncia.id}>
+                  {isAdmin && (
+                    <TableCell>
+                      <button
+                        onClick={() => handleToggleSelect(denuncia.id)}
+                        className="flex items-center justify-center"
+                        title="Seleccionar denuncia"
+                      >
+                        {selectedDenuncias.has(denuncia.id) ? (
+                          <CheckSquare className="h-5 w-5 text-amber-600" />
+                        ) : (
+                          <Square className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium">#{denuncia.id}</TableCell>
                   <TableCell>
                     {denuncia.denunciante_nombre && denuncia.denunciante_apellido 
@@ -397,7 +603,7 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
                           Resolver
                         </Button>
                       )}
-                      {currentUser?.rol === "admin" && (
+                      {isAdmin && (
                         <>
                           <Button
                             variant="ghost"
@@ -410,8 +616,9 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteDenuncia(denuncia.id)}
+                            onClick={() => handleDeleteDenuncia(denuncia.id, denuncia.tipo_denuncia)}
                             className="text-red-600 hover:text-red-800"
+                            disabled={isDeleting}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Eliminar
@@ -424,7 +631,7 @@ export default function DenunciasTable({ onDenunciasUpdate }: DenunciasTableProp
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4">
+                <TableCell colSpan={isAdmin ? 9 : 8} className="text-center py-4">
                   No se encontraron denuncias
                 </TableCell>
               </TableRow>

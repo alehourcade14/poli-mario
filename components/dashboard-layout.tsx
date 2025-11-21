@@ -2,15 +2,17 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Home, FileText, Users, BarChart3, Camera, Car, LogOut, Menu, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Home, FileText, Users, BarChart3, Camera, Car, LogOut, Menu, X, ChevronLeft, ChevronRight, Camera as CameraIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import IdleSessionManager from "./idle-session-manager"
+import UploadProfilePhoto from "./upload-profile-photo"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -20,9 +22,16 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children, user }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [userPhoto, setUserPhoto] = useState<string | undefined>(user?.foto_perfil)
   const router = useRouter()
   const pathname = usePathname()
   const { toast } = useToast()
+
+  // Actualizar foto cuando cambie el usuario
+  useEffect(() => {
+    setUserPhoto(user?.foto_perfil)
+  }, [user?.foto_perfil])
 
   const handleLogout = () => {
     localStorage.removeItem("currentUser")
@@ -113,10 +122,26 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
             {!sidebarCollapsed && (
               <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-amber-500 flex items-center justify-center">
-                      <span className="text-sm font-medium text-white">{user?.nombre?.charAt(0) || "U"}</span>
+                  <div className="flex-shrink-0 relative group">
+                    <div className="h-10 w-10 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden">
+                      {userPhoto ? (
+                        <Image
+                          src={userPhoto}
+                          alt={user?.nombre || "Usuario"}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-white">{user?.nombre?.charAt(0) || "U"}</span>
+                      )}
                     </div>
+                    <button
+                      onClick={() => setUploadDialogOpen(true)}
+                      className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                      title="Cambiar foto de perfil"
+                    >
+                      <CameraIcon className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
                   </div>
                   <div className="ml-3 flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -139,9 +164,30 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
               </div>
             )}
 
-            {/* Collapsed logout button */}
+            {/* Collapsed user info and logout */}
             {sidebarCollapsed && (
-              <div className="flex-shrink-0 p-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex-shrink-0 p-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="relative group">
+                  <div className="h-10 w-10 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden mx-auto">
+                    {userPhoto ? (
+                      <Image
+                        src={userPhoto}
+                        alt={user?.nombre || "Usuario"}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-white">{user?.nombre?.charAt(0) || "U"}</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setUploadDialogOpen(true)}
+                    className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                    title="Cambiar foto de perfil"
+                  >
+                    <CameraIcon className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                </div>
                 <Button
                   onClick={handleLogout}
                   variant="ghost"
@@ -178,6 +224,33 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
           <main className="flex-1">{children}</main>
         </div>
       </div>
+
+      {/* Upload Profile Photo Dialog */}
+      <UploadProfilePhoto
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        currentPhoto={userPhoto}
+        onPhotoUploaded={(photoPath) => {
+          setUserPhoto(photoPath)
+          // Actualizar el usuario en localStorage si existe
+          if (typeof window !== 'undefined') {
+            const currentUser = localStorage.getItem('currentUser')
+            if (currentUser) {
+              try {
+                const userData = JSON.parse(currentUser)
+                userData.foto_perfil = photoPath
+                localStorage.setItem('currentUser', JSON.stringify(userData))
+              } catch (e) {
+                console.error('Error actualizando usuario en localStorage:', e)
+              }
+            }
+          }
+          // Disparar evento personalizado para actualizar el usuario en otros componentes
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('userPhotoUpdated', { detail: { photoPath } }))
+          }
+        }}
+      />
     </IdleSessionManager>
   )
 }

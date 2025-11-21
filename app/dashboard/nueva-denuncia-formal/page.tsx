@@ -340,6 +340,7 @@ export default function NuevaDenunciaFormal() {
         descripcion: formData.descripcion,
         tipo_delito: formData.tipo || 'No especificado',
         departamento: formData.departamento || 'Departamento Cibercrimen',
+        division: formData.division || 'División de Robos y Hurtos',
         estado: formData.estado,
         observaciones: `Edad: ${formData.edad}, Sexo: ${formData.sexo}, Instrucción: ${formData.instruccion}`
       }
@@ -366,11 +367,13 @@ export default function NuevaDenunciaFormal() {
 
       const nuevaDenuncia = await response.json()
       console.log("✅ Denuncia creada exitosamente:", nuevaDenuncia)
+      console.log("📋 División en la respuesta de la API:", nuevaDenuncia.division)
       setSuccess(true)
 
       // Generar PDF con formato formal
       try {
         console.log("📄 Generando PDF...")
+        console.log("📋 División antes de generar PDF:", nuevaDenuncia.division)
         const { exportDenunciaFormalToPDF } = await import("@/lib/pdf-denuncia-formal")
         await exportDenunciaFormalToPDF(nuevaDenuncia)
         console.log("✅ PDF generado exitosamente")
@@ -589,6 +592,7 @@ export default function NuevaDenunciaFormal() {
                         <SelectItem value="Paradero">Paradero</SelectItem>
                         <SelectItem value="Sustracción de Automotor">Sustracción de Automotor</SelectItem>
                         <SelectItem value="Estafa">Estafa</SelectItem>
+                        <SelectItem value="Amenaza">Amenaza</SelectItem>
                         <SelectItem value="Otro">Otro</SelectItem>
                       </SelectContent>
                     </Select>
@@ -608,7 +612,6 @@ export default function NuevaDenunciaFormal() {
                         <SelectItem value="Departamento Sustracción de Automotores">Departamento Sustracción de Automotores</SelectItem>
                         <SelectItem value="Departamento Delitos Contra la Propiedad">Departamento Delitos Contra la Propiedad</SelectItem>
                         <SelectItem value="Departamento Delitos contra las Personas">Departamento Delitos contra las Personas</SelectItem>
-                        <SelectItem value="Departamento Seguridad Personal">Departamento Seguridad Personal</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

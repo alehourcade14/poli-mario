@@ -127,7 +127,9 @@ export async function exportDenunciaFormalToDocx(denuncia: any) {
 
     // Construir el texto con estructura mejorada y títulos claros
     const fechaHoraActual = `${fechaDenunciaTexto}, siendo las horas ${horaActualSistema}`
-    const oficinaDependencia = `Oficina de Sumarios Judiciales de ésta ${getSafeValue(denuncia.division, 'División')}, dependiente de la Dirección General de Investigaciones`
+    // Usar la misma división para consistencia
+    const divisionParaOficina = divisionValue || denuncia.division || denuncia.division_nombre || denuncia.division_seleccionada
+    const oficinaDependencia = `Oficina de Sumarios Judiciales de ésta ${divisionParaOficina || 'División'}, dependiente de la Dirección General de Investigaciones`
     const notificacionLegal = `Art. 245 del Código Penal Argentino, que reprime al que denunciare falsamente un hecho`
     
     // Información personal del denunciante con validación mejorada
@@ -137,15 +139,22 @@ export async function exportDenunciaFormalToDocx(denuncia: any) {
     const direccion = getSafeValue(denuncia.denunciante_direccion || denuncia.domicilio, 'Agüero Vera 712, F5300BDA La Rioja, Argentina')
     const barrio = getSafeValue(denuncia.barrio || denuncia.barrio_hecho || denuncia.departamento_hecho, 'No especificado')
     
-    // Obtener división para usar en el texto
-    const divisionValue = getSafeValue(denuncia.division || denuncia.division_nombre, 'División de Robos y Hurtos')
+    // Obtener división para usar en el texto - usar exactamente la división seleccionada
+    const divisionValue = denuncia.division || denuncia.division_nombre || denuncia.division_seleccionada
+    
+    if (!divisionValue || divisionValue.trim() === '') {
+      console.error("❌ No se encontró división en la denuncia para Word")
+      throw new Error("La denuncia no tiene una división asignada. Por favor, seleccione una división antes de generar el documento.")
+    }
+    
     const departamentoValue = getSafeValue(denuncia.departamento_nombre || denuncia.departamento, 'Departamento Cibercrimen')
     
-    const datosPersonales = `${nombreFinalSeguro.toUpperCase()}, de nacionalidad ${nacionalidad}, de estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesion}, con domicilio en ${direccion} del barrio ${barrio} de esta Ciudad Capital`
+    // Formato mejorado con mayor separación visual para nombre, nacionalidad y estado civil
+    const datosPersonales = `${nombreFinalSeguro.toUpperCase()} – nacionalidad ${nacionalidad} – estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesion}, con domicilio en ${direccion} del barrio ${barrio} de esta Ciudad Capital`
     
     // Información del hecho
     const fechaHoraHecho = `${fechaHechoTexto}, siendo las horas ${horaHechoTexto}`
-    const lugarHecho = `${lugarHechoTexto}, departamento de ${departamentoHechoTexto}`
+    const lugarHecho = `${lugarHechoTexto}`
     const tipoHecho = `${tipoDelitoTexto}`
     const descripcionHecho = getSafeValue(denuncia.descripcion, 'Sin descripción')
     
@@ -217,24 +226,24 @@ export async function exportDenunciaFormalToDocx(denuncia: any) {
               ],
             }),
             
-            // División
+            // División - Mismo estilo que los otros títulos del membrete
             new Paragraph({
               alignment: AlignmentType.CENTER,
-              spacing: { after: 600 },
+              spacing: { after: 240 }, // Mismo espaciado que los otros títulos
               children: [
                 new TextRun({
-                  text: divisionValue.toUpperCase(),
-                  bold: true,
-                  size: 22, // 11pt
-                  font: "Times New Roman",
+                  text: divisionValue.toUpperCase(), // Convertir a mayúsculas para consistencia
+                  bold: true, // Mismo peso que el departamento
+                  size: 24, // 12pt - Mismo tamaño que "DIRECCIÓN GENERAL" y "DEPARTAMENTO"
+                  font: "Times New Roman", // Misma fuente
                 }),
               ],
             }),
 
-            // Título principal de la denuncia
+            // Título principal de la denuncia - con espacio adicional antes
             new Paragraph({
               alignment: AlignmentType.CENTER,
-              spacing: { before: 600, after: 600 },
+              spacing: { before: 1200, after: 600 }, // Aumentado el espacio antes (equivalente a 1-2 saltos de línea adicionales)
               children: [
                 new TextRun({
                   text: `DENUNCIA FORMULADA POR EL CIUDADANO: ${nombreFinalSeguro.toUpperCase()}`,
@@ -460,4 +469,5 @@ export async function exportDenunciaFormalToDocx(denuncia: any) {
     throw error
   }
 }
+
 

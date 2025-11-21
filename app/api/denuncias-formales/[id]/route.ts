@@ -168,7 +168,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     }
 
     // Solo administradores pueden eliminar
-    if (decoded.rol !== 'administrador') {
+    if (decoded.rol !== 'administrador' && decoded.rol !== 'admin') {
       return new NextResponse(JSON.stringify({ error: 'No autorizado para eliminar denuncias' }), { status: 403 })
     }
 

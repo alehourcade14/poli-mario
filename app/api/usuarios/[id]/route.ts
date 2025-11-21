@@ -85,6 +85,12 @@ export async function PUT(
       paramCount++
     }
 
+    if (data.foto_perfil !== undefined) {
+      updateFields.push(`foto_perfil = $${paramCount}`)
+      values.push(data.foto_perfil)
+      paramCount++
+    }
+
     if (updateFields.length === 0) {
       return new NextResponse(JSON.stringify({ error: 'No hay campos para actualizar' }), { status: 400 })
     }

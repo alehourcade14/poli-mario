@@ -14,6 +14,7 @@ interface User {
   activo: boolean
   ultimo_acceso?: string
   created_at: string
+  foto_perfil?: string
 }
 
 export function useCurrentUser() {

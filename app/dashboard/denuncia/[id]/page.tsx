@@ -490,6 +490,7 @@ export default function DetalleDenuncia() {
                         <SelectItem value="Paradero">Paradero</SelectItem>
                         <SelectItem value="Sustracción de Automotor">Sustracción de Automotor</SelectItem>
                         <SelectItem value="Estafa">Estafa</SelectItem>
+                        <SelectItem value="Amenaza">Amenaza</SelectItem>
                         <SelectItem value="Homicidio">Homicidio</SelectItem>
                         <SelectItem value="Suicidio">Suicidio</SelectItem>
                         <SelectItem value="Otro">Otro</SelectItem>

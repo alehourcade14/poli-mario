@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
         dni: user.dni,
         telefono: user.telefono,
         rol: user.rol,
-        departamento_id: user.departamento_id
+        departamento_id: user.departamento_id,
+        foto_perfil: user.foto_perfil
       }
     })
   } catch (error) {

@@ -67,6 +67,8 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
 
     console.log("🔍 Iniciando generación de PDF para denuncia ID:", denuncia.id)
     console.log("📋 Datos de denuncia recibidos:", denuncia)
+    console.log("📋 División recibida:", denuncia.division)
+    console.log("📋 Tipo de división:", typeof denuncia.division)
 
     // Log para debugging
     console.log("📋 Datos de denuncia recibidos para PDF:", {
@@ -186,12 +188,24 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     pdf.text(`${departamentoValue.toUpperCase()}`, pageWidth / 2, yPosition, { align: "center" })
     yPosition += 6
     
-    // División - Con formato correcto
-    pdf.setFontSize(normalFontSize)
-    pdf.setFont("times", "bold")
-    const divisionValue = getSafeValue(denuncia.division, 'División de Robos y Hurtos')
-    pdf.text(`${divisionValue.toUpperCase()}`, pageWidth / 2, yPosition, { align: "center" })
-    yPosition += 15
+    // División - Usar exactamente la división seleccionada con el mismo estilo que los otros títulos
+    pdf.setFontSize(subtitleFontSize) // Mismo tamaño que "DIRECCIÓN GENERAL" y "DEPARTAMENTO"
+    pdf.setFont("times", "bold") // Mismo tipo de fuente y peso
+    // Obtener la división directamente, sin valores por defecto
+    const divisionValue = denuncia.division || denuncia.division_nombre || denuncia.division_seleccionada
+    
+    if (!divisionValue || divisionValue.trim() === '') {
+      console.error("❌ No se encontró división en la denuncia")
+      throw new Error("La denuncia no tiene una división asignada. Por favor, seleccione una división antes de generar el PDF.")
+    }
+    
+    console.log("📋 División que se mostrará en el PDF (exacta):", divisionValue)
+    // Convertir a mayúsculas para mantener consistencia con los otros títulos del membrete
+    pdf.text(divisionValue.toUpperCase(), pageWidth / 2, yPosition, { align: "center" })
+    yPosition += 6 // Mismo espaciado que los otros títulos
+    
+    // Agregar espacio adicional antes del título "DENUNCIA FORMULADA POR EL CIUDADANO:"
+    yPosition += 12 // Espacio adicional (equivalente a 1-2 saltos de línea)
 
     // Título principal de la denuncia
     pdf.setFontSize(normalFontSize)
@@ -257,7 +271,9 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
 
       // Construir el texto con estructura mejorada y títulos claros
       const fechaHoraActual = `${fechaDenunciaTexto}, siendo las horas ${horaActualSistema}`
-      const oficinaDependencia = `Oficina de Sumarios Judiciales de ésta ${getSafeValue(denuncia.division, 'División')}, dependiente de la Dirección General de Investigaciones`
+      // Usar la misma división del membrete para consistencia
+      const divisionParaOficina = denuncia.division || denuncia.division_nombre || denuncia.division_seleccionada || divisionValue
+      const oficinaDependencia = `Oficina de Sumarios Judiciales de ésta ${divisionParaOficina || 'División'}, dependiente de la Dirección General de Investigaciones`
       const notificacionLegal = `Art. 245 del Código Penal Argentino, que reprime al que denunciare falsamente un hecho`
       
       // Información personal del denunciante con validación mejorada
@@ -267,33 +283,40 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       const direccion = getSafeValue(denuncia.denunciante_direccion || denuncia.domicilio, 'Agüero Vera 712, F5300BDA La Rioja, Argentina')
       const barrio = getSafeValue(denuncia.barrio || denuncia.barrio_hecho || denuncia.departamento_hecho, 'No especificado')
       
-      // Obtener división para usar en el texto
-      const divisionValue = getSafeValue(denuncia.division || denuncia.division_nombre, 'División de Robos y Hurtos')
+      // Obtener división para usar en el texto - usar exactamente la misma división del membrete
+      const divisionValueTexto = divisionValue || denuncia.division || denuncia.division_nombre || denuncia.division_seleccionada
+      
+      if (!divisionValueTexto || divisionValueTexto.trim() === '') {
+        console.error("❌ No se encontró división para el texto de la denuncia")
+        throw new Error("La denuncia no tiene una división asignada.")
+      }
       
       console.log("📋 nombreFinalSeguro:", nombreFinalSeguro)
       console.log("📋 sexoTexto:", sexoTexto)
       console.log("📋 estadoCivilTexto:", estadoCivilTexto)
       console.log("📋 barrio:", barrio)
       console.log("📋 tipoDelitoTexto:", tipoDelitoTexto)
-      console.log("📋 divisionValue:", divisionValue)
+      console.log("📋 divisionValueTexto:", divisionValueTexto)
       console.log("📋 denuncia completa:", denuncia)
       
-      const datosPersonales = `${nombreFinalSeguro.toUpperCase()}, de nacionalidad ${nacionalidad}, de estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesion}, con domicilio en ${direccion} del barrio ${barrio} de esta Ciudad Capital`
+      // Formato mejorado con mayor separación visual para nombre, nacionalidad y estado civil
+      const datosPersonales = `${nombreFinalSeguro.toUpperCase()} – nacionalidad ${nacionalidad} – estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesion}, con domicilio en ${direccion} del barrio ${barrio} de esta Ciudad Capital`
       
       // Información del hecho
       const fechaHoraHecho = `${fechaHechoTexto}, siendo las horas ${horaHechoTexto}`
-      const lugarHecho = `${lugarHechoTexto}, departamento de ${departamentoHechoTexto}`
+      const lugarHecho = `${lugarHechoTexto}`
       const tipoHecho = `${tipoDelitoTexto}`
       const descripcionHecho = getSafeValue(denuncia.descripcion, 'Sin descripción')
       
       // Construir el texto con formato de acta policial profesional
-      const introduccion = `En la ciudad de La Rioja, capital de la provincia del mismo nombre, a los ${fechaHoraActual}, comparece por ante la Oficina de Sumarios Judiciales de ésta ${divisionValue}, dependiente de la Dirección General de Investigaciones, una persona de sexo ${sexoExtraido}, manifestando deseos de formular una denuncia, motivo por el cual se lo notifica de los términos y contenidos del ${notificacionLegal}, enterado de ello, seguidamente es interrogado por su apellido y demás circunstancias personales, dijo llamarse:`
+      // Reformatear a 80 caracteres por línea con justificación
+      const introduccion = `En la ciudad de La Rioja, capital de la provincia del mismo nombre, a los ${fechaHoraActual}, comparece por ante la Oficina de Sumarios Judiciales de ésta ${divisionValueTexto}, dependiente de la Dirección General de Investigaciones, una persona de sexo ${sexoExtraido}, manifestando deseos de formular una denuncia, motivo por el cual se lo notifica de los términos y contenidos del ${notificacionLegal}, enterado de ello, seguidamente es interrogado por su apellido y demás circunstancias personales, dijo llamarse:`
       
       const datosPersonalesCompletos = `${datosPersonales}, quien invitado al acto, seguidamente DENUNCIA: ${descripcionHecho || 'Sin descripción'}.`
       
       const cierre = `Que es todo por lo que se da por finalizado el acto, previa lectura y ratificación, firmando al pie de la presente de conformidad por ante mí, Funcionario Policial, que CERTIFICO.`
 
-      // Construir el texto con párrafos separados
+      // Construir el texto con párrafos separados (sin formatear aún)
       textoDenuncia = `${introduccion}\n\n${datosPersonalesCompletos}\n\n${cierre}`
       
       console.log("✅ Texto de denuncia generado exitosamente")
@@ -307,6 +330,107 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       pdf.setFont("times", "normal")
       pdf.setFontSize(11)
       console.log("✅ Fuente configurada exitosamente")
+
+      // Configurar para 80 caracteres por línea exactamente
+      const sangria = 20 // Milímetros de sangría para la primera línea
+      const anchoConSangria = contentWidth - sangria
+      const caracteresPorLinea = 80 // Exactamente 80 caracteres como solicitado
+      
+      console.log(`📏 Ancho disponible: ${contentWidth}mm, Con sangría: ${anchoConSangria}mm`)
+      console.log(`📏 Caracteres por línea: ${caracteresPorLinea}`)
+
+      // Función para dividir texto en líneas de exactamente 80 caracteres
+      const dividirTextoEnLineas = (texto: string, maxCaracteres: number = 80): string[] => {
+        const palabras = texto.split(' ')
+        const lineas: string[] = []
+        let lineaActual = ''
+
+        for (const palabra of palabras) {
+          const espacio = lineaActual ? ' ' : ''
+          const lineaConPalabra = lineaActual + espacio + palabra
+          
+          // Verificar si la línea cabe (exactamente 80 caracteres o menos)
+          if (lineaConPalabra.length <= maxCaracteres) {
+            lineaActual = lineaConPalabra
+          } else {
+            // Si la línea actual tiene contenido, guardarla
+            if (lineaActual) {
+              lineas.push(lineaActual)
+            }
+            // Si la palabra sola es más larga que el máximo, dividirla
+            if (palabra.length > maxCaracteres) {
+              // Dividir palabra muy larga
+              let palabraRestante = palabra
+              while (palabraRestante.length > maxCaracteres) {
+                lineas.push(palabraRestante.substring(0, maxCaracteres))
+                palabraRestante = palabraRestante.substring(maxCaracteres)
+              }
+              lineaActual = palabraRestante
+            } else {
+              lineaActual = palabra
+            }
+          }
+        }
+        
+        // Agregar la última línea si existe
+        if (lineaActual) {
+          lineas.push(lineaActual)
+        }
+        
+        return lineas
+      }
+
+      // Función para renderizar texto justificado con sangría
+      const renderizarTextoJustificado = (texto: string, x: number, y: number, maxWidth: number, sangriaPrimeraLinea: number = 0): number => {
+        let currentY = y
+        let isFirstLine = true
+        const lineas = dividirTextoEnLineas(texto, caracteresPorLinea)
+
+        lineas.forEach((linea, index) => {
+          // Verificar si necesitamos una nueva página
+          if (currentY > pageHeight - 30) {
+            pdf.addPage()
+            currentY = marginTop + 20
+            isFirstLine = true // Nueva página, primera línea del párrafo
+          }
+
+          const esUltimaLinea = index === lineas.length - 1
+          const tieneSangria = isFirstLine && sangriaPrimeraLinea > 0
+          const posicionX = tieneSangria ? x + sangriaPrimeraLinea : x
+          const anchoDisponible = tieneSangria ? maxWidth - sangriaPrimeraLinea : maxWidth
+
+          if (esUltimaLinea || linea.trim().split(' ').length === 1) {
+            // Última línea o línea con una sola palabra: alineación izquierda
+            pdf.text(linea, posicionX, currentY)
+          } else {
+            // Líneas intermedias: justificación perfecta
+            const palabras = linea.trim().split(' ')
+            if (palabras.length > 1) {
+              // Calcular el ancho total del texto sin espacios
+              const anchoTotalTexto = palabras.reduce((sum, palabra) => sum + pdf.getTextWidth(palabra), 0)
+              const anchoEspacios = pdf.getTextWidth(' ') * (palabras.length - 1)
+              const espacioDisponible = anchoDisponible - anchoTotalTexto - anchoEspacios
+              const espacioExtraPorGap = espacioDisponible / (palabras.length - 1)
+
+              let textX = posicionX
+              palabras.forEach((palabra, palabraIndex) => {
+                pdf.text(palabra, textX, currentY)
+                textX += pdf.getTextWidth(palabra)
+                if (palabraIndex < palabras.length - 1) {
+                  textX += pdf.getTextWidth(' ') + espacioExtraPorGap
+                }
+              })
+            } else {
+              pdf.text(linea, posicionX, currentY)
+            }
+          }
+
+          currentY += 6.5
+          isFirstLine = false
+        })
+
+        return currentY
+      }
 
       // Dividir el texto en párrafos y renderizar cada uno
       const parrafos = textoDenuncia.split('\n\n').filter(p => p.trim())
@@ -324,35 +448,8 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
           yPosition = marginTop + 20
         }
         
-        // Usar la función nativa de jsPDF para dividir texto y justificar
-        const sangria = 20 // Puntos de sangría para la primera línea
-        const anchoConSangria = contentWidth - sangria
-        const lines = pdf.splitTextToSize(parrafo, anchoConSangria)
-        console.log(`📝 Líneas generadas para párrafo ${i + 1}:`, lines.length)
-        
-        // Renderizar cada línea con justificación perfecta y sangría
-        lines.forEach((line: string, lineIndex: number) => {
-          // Verificar si necesitamos una nueva página
-          if (yPosition > pageHeight - 30) {
-            pdf.addPage()
-            yPosition = marginTop + 20
-          }
-          
-          // Aplicar sangría solo a la primera línea de cada párrafo
-          const posicionX = (lineIndex === 0) ? marginSide + sangria : marginSide
-          const anchoLinea = (lineIndex === 0) ? anchoConSangria : contentWidth
-          
-          // Para la última línea del párrafo, usar alineación izquierda para evitar espaciado excesivo
-          const esUltimaLinea = lineIndex === lines.length - 1
-          const alineacion = esUltimaLinea ? 'left' : 'justify'
-          
-          // Renderizar línea con justificación perfecta
-          pdf.text(line, posicionX, yPosition, { 
-            align: alineacion,
-            maxWidth: anchoLinea
-          })
-          yPosition += 6.5
-        })
+        // Renderizar el párrafo con justificación y sangría
+        yPosition = renderizarTextoJustificado(parrafo, marginSide, yPosition, contentWidth, sangria)
         
         // Agregar espacio entre párrafos (excepto después del último)
         if (i < parrafos.length - 1) {

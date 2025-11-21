@@ -218,9 +218,15 @@ export async function POST(request: Request) {
     if (!denunciaFinal.departamento_nombre && data.departamento) {
       denunciaFinal.departamento_nombre = data.departamento
     }
-    if (!denunciaFinal.division && data.division) {
+    // Asegurar que la división siempre use el valor enviado desde el formulario
+    if (data.division && data.division.trim() !== '') {
       denunciaFinal.division = data.division
+      console.log("📋 División asignada desde data.division:", data.division)
+    } else if (!denunciaFinal.division || denunciaFinal.division.trim() === '') {
+      denunciaFinal.division = 'División de Robos y Hurtos'
+      console.log("📋 División usando valor por defecto")
     }
+    console.log("📋 División final en la respuesta:", denunciaFinal.division)
     if (!denunciaFinal.tipo_delito_nombre && data.tipo_delito) {
       denunciaFinal.tipo_delito_nombre = data.tipo_delito
     }
