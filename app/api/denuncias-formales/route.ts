@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/database-postgres'
 import { verifyToken } from '@/lib/auth'
+import { canViewAllDenuncias, getUserDivision, buildDivisionFilter } from '@/lib/permissions'
 
 // GET - Obtener todas las denuncias formales
 export async function GET(request: Request) {
@@ -16,7 +17,15 @@ export async function GET(request: Request) {
       return new NextResponse(JSON.stringify({ error: 'Token inválido' }), { status: 401 })
     }
 
-    const result = await query(`
+    // Obtener división del usuario
+    const userDivision = await getUserDivision(decoded.id)
+    const canViewAll = canViewAllDenuncias(decoded.rol, userDivision || undefined)
+    
+    // Construir filtro de división
+    const divisionFilter = buildDivisionFilter(canViewAll, userDivision, 'df')
+    const hasFilter = divisionFilter && !divisionFilter.includes('IS NULL')
+
+    let queryText = `
       SELECT 
         df.id,
         df.numero_expediente,
@@ -54,6 +63,7 @@ export async function GET(request: Request) {
         df.requiere_seguimiento,
         df.created_at,
         df.updated_at,
+        COALESCE(df.division, 'División de Robos y Hurtos') as division,
         de.nombre as departamento_nombre,
         es.nombre as estado_nombre,
         td.nombre as tipo_delito,
@@ -63,8 +73,13 @@ export async function GET(request: Request) {
       LEFT JOIN estados_denuncias es ON df.estado_id = es.id
       LEFT JOIN tipos_delitos td ON df.tipo_delito_id = td.id
       LEFT JOIN usuarios u ON df.usuario_id = u.id
+      ${divisionFilter}
       ORDER BY df.created_at DESC
-    `)
+    `
+
+    const result = hasFilter 
+      ? await query(queryText, [userDivision])
+      : await query(queryText)
 
     return new NextResponse(JSON.stringify(result.rows), {
       status: 200,
@@ -150,6 +165,10 @@ export async function POST(request: Request) {
       numeroExpediente = `EXP-FORMAL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     }
 
+    // Obtener fecha y hora actual si no se proporcionan
+    const fechaDenuncia = data.fecha_denuncia || new Date().toISOString().split('T')[0]
+    const horaDenuncia = data.hora_denuncia || new Date().toTimeString().split(' ')[0].substring(0, 5)
+
     const result = await query(`
       INSERT INTO denuncias_formales (
         numero_expediente, denunciante_nombre, denunciante_apellido,
@@ -158,27 +177,28 @@ export async function POST(request: Request) {
         fecha_hecho, hora_hecho, lugar_hecho, departamento_hecho, latitud, longitud,
         descripcion, circunstancias, testigos, elementos_sustraidos, valor_estimado,
         denunciado_nombre, denunciado_apellido, denunciado_dni, denunciado_descripcion,
-        tipo_delito_id, estado_id, departamento_id, usuario_id, observaciones, division
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
+        tipo_delito_id, estado_id, departamento_id, usuario_id, observaciones, division,
+        fecha_denuncia, hora_denuncia
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
       RETURNING *
     `, [
       numeroExpediente,
-      data.denunciante_nombre,
-      data.denunciante_apellido,
-      data.denunciante_dni,
+      data.denunciante_nombre || '',
+      data.denunciante_apellido || '',
+      data.denunciante_dni || '',
       data.denunciante_telefono || '',
       data.denunciante_email || '',
-      data.denunciante_direccion,
+      data.denunciante_direccion || '',
       data.denunciante_nacionalidad || 'Argentina',
       data.denunciante_estado_civil || '',
       data.denunciante_profesion || '',
-      data.fecha_hecho,
-      data.hora_hecho,
-      data.lugar_hecho,
-      data.departamento_hecho,
+      data.fecha_hecho || null,
+      data.hora_hecho || null,
+      data.lugar_hecho || '',
+      data.departamento_hecho || '',
       data.latitud || null,
       data.longitud || null,
-      data.descripcion,
+      data.descripcion || '',
       data.circunstancias || '',
       data.testigos || '',
       data.elementos_sustraidos || '',
@@ -192,7 +212,9 @@ export async function POST(request: Request) {
       departamentoId,
       decoded.id,
       data.observaciones || '',
-      data.division || 'División de Robos y Hurtos'
+      data.division || 'División de Robos y Hurtos',
+      fechaDenuncia,
+      horaDenuncia
     ])
 
     // Obtener la denuncia creada con los datos relacionados (departamento_nombre, etc.)

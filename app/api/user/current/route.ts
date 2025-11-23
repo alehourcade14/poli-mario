@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const result = await query(`
       SELECT 
         u.id, u.email, u.nombre, u.apellido, u.dni, u.telefono,
-        u.rol, u.activo, u.ultimo_acceso, u.created_at, u.foto_perfil,
+        u.rol, u.activo, u.ultimo_acceso, u.created_at, u.foto_perfil, u.division,
         d.nombre as departamento_nombre, d.id as departamento_id
       FROM usuarios u
       LEFT JOIN departamentos d ON u.departamento_id = d.id
@@ -47,6 +47,7 @@ export async function GET(request: Request) {
       rol: user.rol,
       departamento: user.departamento_nombre,
       departamento_id: user.departamento_id,
+      division: user.division,
       activo: user.activo,
       ultimo_acceso: user.ultimo_acceso,
       created_at: user.created_at,

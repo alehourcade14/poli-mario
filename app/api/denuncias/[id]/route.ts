@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/database-postgres'
 import { verifyToken } from '@/lib/auth'
+import { canViewAllDenuncias, getUserDivision } from '@/lib/permissions'
 
 // GET - Obtener denuncia por ID
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -15,6 +16,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
     if (!decoded) {
       return new NextResponse(JSON.stringify({ error: 'Token inválido' }), { status: 401 })
     }
+
+    // Obtener división del usuario
+    const userDivision = await getUserDivision(decoded.id)
+    const canViewAll = canViewAllDenuncias(decoded.rol, userDivision || undefined)
 
     const result = await query(`
       SELECT 
@@ -35,7 +40,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return new NextResponse(JSON.stringify({ error: 'Denuncia no encontrada' }), { status: 404 })
     }
 
-    return new NextResponse(JSON.stringify(result.rows[0]), {
+    const denuncia = result.rows[0]
+
+    // Validar acceso por división
+    if (!canViewAll) {
+      if (!userDivision) {
+        return new NextResponse(JSON.stringify({ error: 'Acceso denegado: No tiene división asignada' }), { status: 403 })
+      }
+      
+      if (denuncia.division !== userDivision) {
+        return new NextResponse(JSON.stringify({ error: 'Acceso denegado: Esta denuncia pertenece a otra división' }), { status: 403 })
+      }
+    }
+
+    return new NextResponse(JSON.stringify(denuncia), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })

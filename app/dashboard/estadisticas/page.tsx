@@ -218,8 +218,39 @@ export default function Estadisticas() {
         },
       }
 
+      // Asegurar que todos los elementos estén visibles antes de capturar
+      // Mostrar todas las pestañas temporalmente para capturar todos los gráficos
+      const tabsContainer = statsContainerRef.current.querySelector('[role="tablist"]')
+      const allTabs = tabsContainer?.querySelectorAll('[role="tab"]') || []
+      
+      // Guardar el estado original de las pestañas
+      const originalTabStates: { [key: string]: string } = {}
+      allTabs.forEach((tab) => {
+        const tabValue = tab.getAttribute('data-state') || tab.getAttribute('value')
+        if (tabValue) {
+          originalTabStates[tabValue] = tab.getAttribute('data-state') || ''
+        }
+      })
+
+      // Hacer visibles todos los contenidos de pestañas temporalmente
+      const allTabPanels = statsContainerRef.current.querySelectorAll('[role="tabpanel"], [data-state]')
+      allTabPanels.forEach((panel) => {
+        const htmlPanel = panel as HTMLElement
+        if (htmlPanel.style) {
+          htmlPanel.style.display = 'block'
+          htmlPanel.style.visibility = 'visible'
+          htmlPanel.style.opacity = '1'
+        }
+      })
+
+      // Esperar un momento para que los mapas se rendericen
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
       // Generar y descargar el PDF
       await generatePDF(statsContainerRef.current, pdfData)
+
+      // Restaurar el estado original de las pestañas (opcional, ya que React manejará el estado)
+      // No es necesario restaurar manualmente ya que React mantendrá el estado correcto
 
       toast({
         title: "Informe generado",

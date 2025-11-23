@@ -11,6 +11,7 @@ interface User {
   rol: string
   departamento?: string
   departamento_id?: string
+  division?: string
   activo: boolean
   ultimo_acceso?: string
   created_at: string

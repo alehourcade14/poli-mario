@@ -358,6 +358,7 @@ export default function Usuarios() {
                         <SelectItem value="División de Homicidio">División de Homicidio</SelectItem>
                         <SelectItem value="División de Robos y Hurtos">División de Robos y Hurtos</SelectItem>
                         <SelectItem value="División de Seguridad Personal">División de Seguridad Personal</SelectItem>
+                        <SelectItem value="Operaciones/Mesa de Entrada General">Operaciones/Mesa de Entrada General</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

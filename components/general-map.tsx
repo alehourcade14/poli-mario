@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { GoogleMap, Marker, MarkerClusterer } from "@react-google-maps/api"
 import { useGoogleMaps } from "@/hooks/use-google-maps"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, AlertTriangle, Eye, Info } from "lucide-react"
+import { Loader2, AlertTriangle, Eye, Info, Download } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useRouter } from "next/navigation"
+import html2canvas from "html2canvas"
 
 const containerStyle = {
   width: "100%",
@@ -36,6 +37,8 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
   const [tipoDelitos, setTipoDelitos] = useState<string[]>([])
   const [departamentos, setDepartamentos] = useState<string[]>([])
   const [showClusters, setShowClusters] = useState(true)
+  const [isExporting, setIsExporting] = useState(false)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
 
   const router = useRouter()
 
@@ -201,6 +204,114 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
     }
   }
 
+  // Función para exportar captura del mapa
+  const handleExportMap = async () => {
+    if (!mapContainerRef.current || !isLoaded) {
+      console.error("Mapa no está listo para exportar")
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      console.log("Iniciando exportación del mapa...")
+      
+      // Buscar el contenedor del mapa de Google Maps de múltiples formas
+      let mapDiv: HTMLElement | null = null
+      
+      // Intentar diferentes selectores
+      const selectors = [
+        'div[style*="position: relative"]',
+        'div[class*="gm-style"]',
+        'div[style*="width: 100%"]',
+        'div[style*="height: 600px"]',
+        'div[style*="height: 500px"]'
+      ]
+      
+      for (const selector of selectors) {
+        const found = mapContainerRef.current.querySelector(selector) as HTMLElement
+        if (found && found.offsetWidth > 0 && found.offsetHeight > 0) {
+          // Verificar que contiene elementos de Google Maps
+          if (found.querySelector('[class*="gm-"]') || found.querySelector('canvas')) {
+            mapDiv = found
+            console.log(`Mapa encontrado con selector: ${selector}`)
+            break
+          }
+        }
+      }
+      
+      // Si no se encontró, usar el contenedor principal
+      if (!mapDiv) {
+        mapDiv = mapContainerRef.current
+        console.log("Usando contenedor principal como fallback")
+      }
+
+      if (!mapDiv || mapDiv.offsetWidth === 0 || mapDiv.offsetHeight === 0) {
+        console.error("No se pudo encontrar un contenedor válido del mapa")
+        alert("No se pudo encontrar el mapa. Por favor, asegúrate de que el mapa esté completamente cargado.")
+        return
+      }
+
+      console.log(`Dimensiones del mapa: ${mapDiv.offsetWidth}x${mapDiv.offsetHeight}`)
+
+      // Ocultar el botón de exportar temporalmente
+      const exportButton = mapContainerRef.current.querySelector('button') as HTMLElement
+      const originalButtonDisplay = exportButton?.style.display || ''
+      if (exportButton) {
+        exportButton.style.display = 'none'
+      }
+
+      // Esperar un momento para que los cambios se apliquen
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      // Capturar el mapa usando html2canvas
+      console.log("Capturando con html2canvas...")
+      const canvas = await html2canvas(mapDiv, {
+        scale: 1.5,
+        useCORS: true,
+        logging: true,
+        backgroundColor: '#ffffff',
+        width: mapDiv.offsetWidth,
+        height: mapDiv.offsetHeight,
+        allowTaint: false,
+        foreignObjectRendering: true,
+        ignoreElements: (element) => {
+          // Ignorar el botón de exportar y otros elementos de UI
+          if (element === exportButton) return true
+          const htmlElement = element as HTMLElement
+          const className = typeof htmlElement.className === 'string' ? htmlElement.className : (htmlElement.className?.baseVal || '')
+          const id = typeof htmlElement.id === 'string' ? htmlElement.id : ''
+          if (typeof className === 'string' && className.includes('absolute')) {
+            return className.includes('top-2') || className.includes('right-2') || (id && id.includes('export'))
+          }
+          return false
+        }
+      })
+
+      console.log(`Canvas creado: ${canvas.width}x${canvas.height}`)
+
+      // Restaurar el botón
+      if (exportButton) {
+        exportButton.style.display = originalButtonDisplay
+      }
+
+      // Convertir a imagen y descargar
+      const imgData = canvas.toDataURL('image/png', 1.0)
+      const link = document.createElement('a')
+      link.download = 'mapa-del-delito.png'
+      link.href = imgData
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      console.log("Exportación completada exitosamente")
+    } catch (error) {
+      console.error('Error al exportar el mapa:', error)
+      alert(`Error al exportar el mapa: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   if (loadError) {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
     const isApiKeyError = apiKey === "tu-google-maps-api-key-aqui" || !apiKey || apiKey === ""
@@ -331,7 +442,31 @@ export default function GeneralMap({ denuncias }: GeneralMapProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
-            <div className="relative">
+            <div className="relative" ref={mapContainerRef}>
+              {/* Botón Exportar Captura */}
+              {isLoaded && (
+                <div className="absolute top-2 right-2 z-10">
+                  <Button
+                    onClick={handleExportMap}
+                    disabled={isExporting}
+                    size="sm"
+                    variant="default"
+                    className="bg-white hover:bg-gray-100 text-gray-800 shadow-md"
+                  >
+                    {isExporting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Exportando...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Exportar Captura
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
               {!isLoaded ? (
                 <div className="flex items-center justify-center h-[600px] bg-gray-100 dark:bg-gray-800 rounded-md">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

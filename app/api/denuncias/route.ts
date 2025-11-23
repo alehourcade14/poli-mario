@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/database-postgres'
 import { verifyToken } from '@/lib/auth'
+import { canViewAllDenuncias, getUserDivision, buildDivisionFilter } from '@/lib/permissions'
 
 // GET - Obtener todas las denuncias
 export async function GET(request: Request) {
@@ -16,7 +17,15 @@ export async function GET(request: Request) {
       return new NextResponse(JSON.stringify({ error: 'Token inválido' }), { status: 401 })
     }
 
-    const result = await query(`
+    // Obtener división del usuario
+    const userDivision = await getUserDivision(decoded.id)
+    const canViewAll = canViewAllDenuncias(decoded.rol, userDivision || undefined)
+    
+    // Construir filtro de división
+    const divisionFilter = buildDivisionFilter(canViewAll, userDivision, 'd')
+    const hasFilter = divisionFilter && !divisionFilter.includes('IS NULL')
+    
+    let queryText = `
       SELECT 
         d.id,
         d.numero_expediente,
@@ -42,6 +51,7 @@ export async function GET(request: Request) {
         d.archivos_adjuntos,
         d.created_at,
         d.updated_at,
+        d.division,
         de.nombre as departamento_nombre,
         es.nombre as estado_nombre,
         td.nombre as tipo_delito,
@@ -51,8 +61,13 @@ export async function GET(request: Request) {
       LEFT JOIN estados_denuncias es ON d.estado_id = es.id
       LEFT JOIN tipos_delitos td ON d.tipo_delito_id = td.id
       LEFT JOIN usuarios u ON d.usuario_id = u.id
+      ${divisionFilter}
       ORDER BY d.created_at DESC
-    `)
+    `
+
+    const result = hasFilter 
+      ? await query(queryText, [userDivision])
+      : await query(queryText)
 
     return new NextResponse(JSON.stringify(result.rows), {
       status: 200,
@@ -95,33 +110,42 @@ export async function POST(request: Request) {
       departamentoId = deptResult.rows[0]?.id
     }
 
+    // Obtener fecha y hora actual si no se proporcionan
+    const fechaDenuncia = data.fecha_denuncia || new Date().toISOString().split('T')[0]
+    const horaDenuncia = data.hora_denuncia || new Date().toTimeString().split(' ')[0].substring(0, 5)
+
     const result = await query(`
       INSERT INTO denuncias (
         numero_expediente, denunciante_nombre, denunciante_apellido,
         denunciante_dni, denunciante_telefono, denunciante_email, denunciante_direccion,
         fecha_hecho, hora_hecho, lugar_hecho, departamento_hecho, latitud, longitud,
-        descripcion, tipo_delito_id, estado_id, departamento_id, usuario_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        descripcion, tipo_delito_id, estado_id, departamento_id, usuario_id,
+        fecha_denuncia, hora_denuncia, observaciones, division
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING *
     `, [
       data.numero_expediente || `EXP-${Date.now()}`,
-      data.denunciante_nombre,
-      data.denunciante_apellido,
-      data.denunciante_dni,
-      data.denunciante_telefono,
-      data.denunciante_email,
-      data.denunciante_direccion,
-      data.fecha_hecho,
-      data.hora_hecho,
-      data.lugar_hecho,
-      data.departamento_hecho,
+      data.denunciante_nombre || '',
+      data.denunciante_apellido || '',
+      data.denunciante_dni || '',
+      data.denunciante_telefono || '',
+      data.denunciante_email || '',
+      data.denunciante_direccion || '',
+      data.fecha_hecho || null,
+      data.hora_hecho || null,
+      data.lugar_hecho || '',
+      data.departamento_hecho || '',
       data.latitud || null,
       data.longitud || null,
-      data.descripcion,
-      data.tipo_delito_id,
+      data.descripcion || '',
+      data.tipo_delito_id || null,
       estadoId,
       departamentoId,
-      decoded.id
+      decoded.id,
+      fechaDenuncia,
+      horaDenuncia,
+      data.observaciones || '',
+      data.division || null
     ])
 
     return new NextResponse(JSON.stringify(result.rows[0]), {

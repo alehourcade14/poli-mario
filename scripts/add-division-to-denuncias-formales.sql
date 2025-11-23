@@ -17,3 +17,5 @@ ALTER COLUMN division SET NOT NULL;
 
 
 
+
+

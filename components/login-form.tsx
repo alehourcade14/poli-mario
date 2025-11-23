@@ -17,6 +17,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail")
@@ -101,24 +102,38 @@ export default function LoginForm() {
         <Label htmlFor="password">Contraseña</Label>
         <Input
           id="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           
           className="bg-white dark:bg-gray-700"
         />
       </div>
-      <div className="flex items-center space-x-2">
-        <input
-          id="remember"
-          type="checkbox"
-          checked={rememberMe}
-          onChange={(e) => setRememberMe(e.target.checked)}
-          className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-        />
-        <Label htmlFor="remember" className="text-sm text-gray-700 dark:text-gray-300">
-          Recordarme
-        </Label>
+      <div className="flex flex-col space-y-2">
+        <div className="flex items-center space-x-2">
+          <input
+            id="remember"
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+          />
+          <Label htmlFor="remember" className="text-sm text-gray-700 dark:text-gray-300">
+            Recordarme
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <input
+            id="showPassword"
+            type="checkbox"
+            checked={showPassword}
+            onChange={(e) => setShowPassword(e.target.checked)}
+            className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+          />
+          <Label htmlFor="showPassword" className="text-sm text-gray-700 dark:text-gray-300">
+            Ver contraseña
+          </Label>
+        </div>
       </div>
       <Button 
         type="submit" 
