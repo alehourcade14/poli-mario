@@ -53,6 +53,55 @@ const numeroATexto = (num: number): string => {
   return num.toString()
 }
 
+// Función para adaptar el estado civil según el género del denunciante
+const adaptarEstadoCivilSegunGenero = (estadoCivil: string, genero: string): string => {
+  // Normalizar el estado civil eliminando espacios y convirtiendo a minúsculas para comparación
+  const estadoCivilNormalizado = estadoCivil.trim().toLowerCase()
+  const generoNormalizado = genero.trim().toLowerCase()
+
+  // Si el género es Masculino
+  if (generoNormalizado === "masculino") {
+    if (estadoCivilNormalizado.includes("casado") || estadoCivilNormalizado.includes("casada")) {
+      return "Casado"
+    }
+    if (estadoCivilNormalizado.includes("soltero") || estadoCivilNormalizado.includes("soltera")) {
+      return "Soltero"
+    }
+    if (estadoCivilNormalizado.includes("divorciado") || estadoCivilNormalizado.includes("divorciada")) {
+      return "Divorciado"
+    }
+    if (estadoCivilNormalizado.includes("viudo") || estadoCivilNormalizado.includes("viuda")) {
+      return "Viudo"
+    }
+    if (estadoCivilNormalizado.includes("concubino") || estadoCivilNormalizado.includes("concubina")) {
+      return "Concubino"
+    }
+  }
+
+  // Si el género es Femenino
+  if (generoNormalizado === "femenino") {
+    if (estadoCivilNormalizado.includes("casado") || estadoCivilNormalizado.includes("casada")) {
+      return "Casada"
+    }
+    if (estadoCivilNormalizado.includes("soltero") || estadoCivilNormalizado.includes("soltera")) {
+      return "Soltera"
+    }
+    if (estadoCivilNormalizado.includes("divorciado") || estadoCivilNormalizado.includes("divorciada")) {
+      return "Divorciada"
+    }
+    if (estadoCivilNormalizado.includes("viudo") || estadoCivilNormalizado.includes("viuda")) {
+      return "Viuda"
+    }
+    if (estadoCivilNormalizado.includes("concubino") || estadoCivilNormalizado.includes("concubina")) {
+      return "Concubina"
+    }
+  }
+
+  // Si no se puede determinar o el género no es válido, devolver el estado civil original sin "/a"
+  // Eliminar cualquier "/a" o combinación similar
+  return estadoCivil.replace(/\/a/gi, "").trim()
+}
+
 export async function exportDenunciaFormalToPDF(denuncia: any) {
   try {
     // Validar que la denuncia tenga los datos mínimos necesarios
@@ -228,7 +277,8 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
 
     // Construir el texto de la denuncia con validaciones
     const sexoTexto = getSafeValue(denuncia.sexo) === "Masculino" ? "Masculino" : (getSafeValue(denuncia.sexo) === "Femenino" ? "Femenino" : "No especificado")
-    const estadoCivilTexto = getSafeValue(denuncia.denunciante_estado_civil || denuncia.estadoCivil || denuncia.estado_civil, 'No especificado')
+    const estadoCivilRaw = getSafeValue(denuncia.denunciante_estado_civil || denuncia.estadoCivil || denuncia.estado_civil, 'No especificado')
+    const estadoCivilTexto = adaptarEstadoCivilSegunGenero(estadoCivilRaw, sexoTexto)
 
     // Obtener el nombre completo del denunciante de forma segura
     const nombreCompleto = `${getSafeValue(denuncia.denunciante_nombre)} ${getSafeValue(denuncia.denunciante_apellido)}`.trim()
@@ -299,8 +349,8 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       console.log("📋 divisionValueTexto:", divisionValueTexto)
       console.log("📋 denuncia completa:", denuncia)
       
-      // Formato mejorado con mayor separación visual para nombre, nacionalidad y estado civil
-      const datosPersonales = `${nombreFinalSeguro.toUpperCase()} – nacionalidad ${nacionalidad} – estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesion}, con domicilio en ${direccion} del barrio ${barrio} de esta Ciudad Capital`
+      // Formato mejorado con comas en lugar de guiones para nombre, nacionalidad y estado civil
+      const datosPersonales = `${nombreFinalSeguro.toUpperCase()}, nacionalidad ${nacionalidad}, estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesion}, con domicilio en ${direccion} del barrio ${barrio} de esta Ciudad Capital`
       
       // Información del hecho
       const fechaHoraHecho = `${fechaHechoTexto}, siendo las horas ${horaHechoTexto}`
