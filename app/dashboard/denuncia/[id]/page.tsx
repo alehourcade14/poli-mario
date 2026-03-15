@@ -643,8 +643,8 @@ export default function DetalleDenuncia() {
                       <SelectValue placeholder="Seleccionar estado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Consulta">Consulta</SelectItem>
                       <SelectItem value="En Proceso">En Proceso</SelectItem>
+                      <SelectItem value="Consulta">Consulta</SelectItem>
                       <SelectItem value="Resuelta">Resuelta</SelectItem>
                     </SelectContent>
                   </Select>

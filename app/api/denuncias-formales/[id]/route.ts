@@ -23,6 +23,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         es.nombre as estado_nombre,
         COALESCE(td.nombre, 'Delito no especificado') as tipo_delito_nombre,
         u.nombre || ' ' || u.apellido as creador_nombre,
+        u.dni as creador_dni,
         COALESCE(df.division, 'División de Robos y Hurtos') as division
       FROM denuncias_formales df
       LEFT JOIN departamentos de ON df.departamento_id = de.id

@@ -128,12 +128,10 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       dni: denuncia.denunciante_dni || denuncia.dni,
       nacionalidad: denuncia.denunciante_nacionalidad || denuncia.nacionalidad,
       estadoCivil: denuncia.estadoCivil,
-      instruccion: denuncia.instruccion,
-      edad: denuncia.edad,
       sexo: denuncia.sexo,
-      profesion: denuncia.denunciante_profesion || denuncia.profesion,
+      telefono: denuncia.denunciante_telefono,
+      email: denuncia.denunciante_email,
       domicilio: denuncia.denunciante_direccion || denuncia.domicilio,
-      barrio: denuncia.barrio,
       
       // Datos de la denuncia
       numero_expediente: denuncia.numero_expediente,
@@ -145,7 +143,6 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       lugar_hecho: denuncia.lugar_hecho,
       departamento_hecho: denuncia.departamento_hecho,
       descripcion: denuncia.descripcion,
-      observaciones: denuncia.observaciones,
       
       // Ubicación
       latitud: denuncia.latitud,
@@ -199,22 +196,36 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
 
     // Intentar cargar las imágenes de los escudos (opcional)
     let escudoAmarilloBase64 = null
-    let escudoAzulBase64 = null
+    let logoNuevoBase64 = null
 
     try {
       escudoAmarilloBase64 = await getBase64Image("/images/escudo-amarillo.png")
-      escudoAzulBase64 = await getBase64Image("/images/escudo-azul.png")
+      
+      // Reemplazar el logo azul por el logo nuevo de la policía
+      // Usar el logo específico: logo_policiadelarioja.png
+      try {
+        logoNuevoBase64 = await getBase64Image("/images/logo_policiadelarioja.png")
+        console.log("✅ Logo nuevo cargado: logo_policiadelarioja.png")
+      } catch (logoError) {
+        console.warn("⚠️ No se pudo cargar el logo nuevo (logo_policiadelarioja.png), usando escudo-azul.png como fallback")
+        try {
+          logoNuevoBase64 = await getBase64Image("/images/escudo-azul.png")
+        } catch (fallbackError) {
+          console.warn("❌ No se pudo cargar ningún logo")
+        }
+      }
     } catch (imageError) {
       console.warn("No se pudieron cargar las imágenes de los escudos:", imageError)
       // Continuar sin imágenes
     }
 
     // Añadir los escudos si se cargaron correctamente
-    if (escudoAmarilloBase64 && escudoAzulBase64) {
+    if (escudoAmarilloBase64 && logoNuevoBase64) {
       const escudoSize = 25
       try {
         pdf.addImage(escudoAmarilloBase64, "PNG", marginSide, marginTop, escudoSize, escudoSize)
-        pdf.addImage(escudoAzulBase64, "PNG", pageWidth - marginSide - escudoSize, marginTop, escudoSize, escudoSize)
+        // Usar el logo nuevo en lugar del escudo azul
+        pdf.addImage(logoNuevoBase64, "PNG", pageWidth - marginSide - escudoSize, marginTop, escudoSize, escudoSize)
       } catch (addImageError) {
         console.warn("Error al agregar imágenes al PDF:", addImageError)
       }
@@ -295,7 +306,6 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     const horaHechoTexto = getSafeValue(denuncia.hora_hecho, 'No especificada')
     const lugarHechoTexto = getSafeValue(denuncia.lugar_hecho, 'No especificado')
     const tipoDelitoTexto = getSafeValue(denuncia.tipo_delito_nombre || denuncia.tipo_delito || denuncia.tipo, 'No especificado')
-    const departamentoHechoTexto = getSafeValue(denuncia.departamento_hecho, 'No especificado')
     
     // Generar texto de la denuncia con estructura mejorada
     let textoDenuncia = ""
@@ -331,7 +341,23 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
       const dni = getSafeValue(denuncia.denunciante_dni || denuncia.dni, '58412986')
       const profesion = getSafeValue(denuncia.denunciante_profesion || denuncia.profesion, 'Policía')
       const direccion = getSafeValue(denuncia.denunciante_direccion || denuncia.domicilio, 'Agüero Vera 712, F5300BDA La Rioja, Argentina')
-      const barrio = getSafeValue(denuncia.barrio || denuncia.barrio_hecho || denuncia.departamento_hecho, 'No especificado')
+      let barrio = getSafeValue(denuncia.barrio || denuncia.barrio_hecho || denuncia.departamento_hecho, '')
+      
+      // Limpiar el barrio: eliminar referencias a "Departamento Delitos Contra la Propiedad" o similares
+      if (barrio && barrio !== 'No especificado') {
+        // Eliminar cualquier referencia a "Departamento" seguido de texto
+        barrio = barrio.replace(/Departamento\s+Delitos\s+Contra\s+la\s+Propiedad/gi, '')
+        barrio = barrio.replace(/Departamento\s+[^,]+/gi, '')
+        barrio = barrio.replace(/Departamento\s+/gi, '')
+        // Limpiar espacios múltiples y espacios al inicio/final
+        barrio = barrio.replace(/\s+/g, ' ').trim()
+        // Si quedó vacío después de limpiar, dejar vacío
+        if (barrio === '' || barrio === 'No especificado') {
+          barrio = ''
+        }
+      } else {
+        barrio = ''
+      }
       
       // Obtener división para usar en el texto - usar exactamente la misma división del membrete
       const divisionValueTexto = divisionValue || denuncia.division || denuncia.division_nombre || denuncia.division_seleccionada
@@ -341,16 +367,125 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
         throw new Error("La denuncia no tiene una división asignada.")
       }
       
+      // Función para separar palabras pegadas (ej: "LAURAANA" -> "LAURA ANA")
+      const separarPalabrasPegadas = (texto: string): string => {
+        if (!texto || typeof texto !== 'string') return texto
+        
+        // Lista de nombres comunes para ayudar en la separación
+        const nombresComunes = ['LAURA', 'ANA', 'MARIA', 'JUAN', 'CARLOS', 'PEDRO', 'LUIS', 'JOSE', 'FLAVIO', 'BRIZUELA', 'FERNANDEZ', 'GONZALEZ', 'RODRIGUEZ', 'LOPEZ', 'MARTINEZ', 'GARCIA', 'PEREZ', 'SANCHEZ', 'RAMIREZ', 'TORRES', 'GOMEZ', 'DIAZ', 'MORALES', 'CASTRO', 'ORTIZ', 'RUIZ', 'JIMENEZ', 'HERRERA', 'RAMOS', 'VARGAS']
+        
+        let resultado = texto.toUpperCase().trim()
+        
+        // Intentar separar nombres comunes pegados
+        // Buscar patrones como "LAURAANA" donde "LAURA" y "ANA" son nombres comunes
+        for (let i = 0; i < nombresComunes.length; i++) {
+          for (let j = 0; j < nombresComunes.length; j++) {
+            if (i !== j) {
+              const nombre1 = nombresComunes[i]
+              const nombre2 = nombresComunes[j]
+              const patronPegado = nombre1 + nombre2
+              if (resultado.includes(patronPegado)) {
+                resultado = resultado.replace(new RegExp(patronPegado, 'g'), `${nombre1} ${nombre2}`)
+              }
+            }
+          }
+        }
+        
+        // Separar cuando hay transición de mayúsculas consecutivas (patrón general)
+        // Ejemplo: "BRIZUELAFLAVIO" -> "BRIZUELA FLAVIO"
+        resultado = resultado.replace(/([A-ZÁÉÍÓÚÑ]{5,})([A-ZÁÉÍÓÚÑ]{3,})/g, (match, p1, p2) => {
+          // Verificar si alguna parte es un nombre común
+          const p1EsNombre = nombresComunes.some(n => p1 === n || p1.startsWith(n))
+          const p2EsNombre = nombresComunes.some(n => p2 === n || p2.startsWith(n))
+          if (p1EsNombre || p2EsNombre || (p1.length >= 5 && p2.length >= 3)) {
+            return `${p1} ${p2}`
+          }
+          return match
+        })
+        
+        // Separar cuando hay transición de minúscula a mayúscula
+        resultado = resultado.replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, '$1 $2')
+        
+        return resultado
+      }
+      
+      // Formatear el nombre: usar los campos separados si están disponibles
+      let nombreFormateado = nombreFinalSeguro.trim()
+      
+      // Si tenemos nombre y apellido separados, usarlos directamente
+      const nombreSeparado = denuncia.denunciante_nombre && denuncia.denunciante_apellido
+        ? `${denuncia.denunciante_apellido} ${denuncia.denunciante_nombre}`.trim()
+        : null
+      
+      if (nombreSeparado && nombreSeparado !== 'No especificado No especificado' && nombreSeparado.length > 0) {
+        nombreFormateado = nombreSeparado
+      } else if (nombreFormateado && !nombreFormateado.includes(' ')) {
+        // Si el nombre viene pegado, intentar separarlo
+        // Por ejemplo: "LAURAANA" -> "LAURA ANA", "BRIZUELAFLAVIO" -> "BRIZUELA FLAVIO"
+        nombreFormateado = separarPalabrasPegadas(nombreFormateado)
+      }
+      
+      // Asegurar que el nombre tenga espacios correctos y convertir a mayúsculas
+      nombreFormateado = nombreFormateado.replace(/\s+/g, ' ').trim()
+      const nombreFinal = nombreFormateado.toUpperCase()
+      
+      // Formatear instrucción con mayúscula inicial
+      const instruccionFormateada = instruccionExtraida.charAt(0).toUpperCase() + instruccionExtraida.slice(1).toLowerCase()
+      
+      // El estado civil ya viene adaptado por género (Casado/Casada, Soltero/Soltera, etc.)
+      // Solo asegurar mayúscula inicial sin cambiar el resto
+      const estadoCivilFormateado = estadoCivilTexto.charAt(0).toUpperCase() + estadoCivilTexto.slice(1)
+      
+      // Formatear nacionalidad con mayúscula inicial
+      const nacionalidadFormateada = nacionalidad.charAt(0).toUpperCase() + nacionalidad.slice(1).toLowerCase()
+      
+      // Formatear profesión con mayúscula inicial
+      const profesionFormateada = profesion.charAt(0).toUpperCase() + profesion.slice(1).toLowerCase()
+      
       console.log("📋 nombreFinalSeguro:", nombreFinalSeguro)
+      console.log("📋 nombreFormateado:", nombreFormateado)
       console.log("📋 sexoTexto:", sexoTexto)
       console.log("📋 estadoCivilTexto:", estadoCivilTexto)
-      console.log("📋 barrio:", barrio)
+      console.log("📋 barrio (limpio):", barrio)
       console.log("📋 tipoDelitoTexto:", tipoDelitoTexto)
       console.log("📋 divisionValueTexto:", divisionValueTexto)
-      console.log("📋 denuncia completa:", denuncia)
       
-      // Formato mejorado con comas en lugar de guiones para nombre, nacionalidad y estado civil
-      const datosPersonales = `${nombreFinalSeguro.toUpperCase()}, nacionalidad ${nacionalidad}, estado civil ${estadoCivilTexto}, con instrucción ${instruccionExtraida}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesion}, con domicilio en ${direccion} del barrio ${barrio} de esta Ciudad Capital`
+      // Formato mejorado con espacios correctos y formato según el modelo
+      // Modelo: BRIZUELA FLAVIO, nacionalidad Argentina, estado civil Viudo, con instrucción Primaria incompleta, de 56 años de edad, D.N.I. Nº 26.054.755, profesión Policía, con domicilio en Teresita Flores 1322 del barrio XXXXX de esta Ciudad Capital
+      // Limpiar espacios múltiples en la dirección
+      const direccionLimpia = direccion.replace(/\s+/g, ' ').trim()
+      
+      // Construir el texto del barrio: si existe, incluir "del barrio [nombre]", si no, solo dejar espacio
+      const barrioTexto = barrio && barrio.trim() !== '' ? `del barrio ${barrio.trim()} ` : ''
+      
+      // Construir el texto completo con formato correcto
+      // Asegurar espacios después de cada coma y separar palabras pegadas
+      let datosPersonalesRaw = `${nombreFinal}, nacionalidad ${nacionalidadFormateada}, estado civil ${estadoCivilFormateado}, con instrucción ${instruccionFormateada}, de ${edadExtraida} años de edad, D.N.I. Nº ${dni}, profesión ${profesionFormateada}, con domicilio en ${direccionLimpia} ${barrioTexto}de esta Ciudad Capital`
+      
+      // Separar palabras pegadas comunes que pueden venir sin espacios
+      // Aplicar correcciones en orden específico para evitar conflictos
+      datosPersonalesRaw = datosPersonalesRaw
+        // Primero, separar palabras específicas conocidas
+        .replace(/coninstrucción/gi, 'con instrucción') // Separar "coninstrucción" (con tilde)
+        .replace(/coninstruccion/gi, 'con instrucción') // Separar "coninstruccion" (sin tilde)
+        .replace(/estadocivil/gi, 'estado civil') // Separar "estadocivil"
+        .replace(/nacionalidad([A-ZÁÉÍÓÚÑ])/gi, 'nacionalidad $1') // Separar "nacionalidadArgentina"
+        // Separar cualquier palabra pegada (minúscula seguida de mayúscula)
+        .replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, '$1 $2')
+        // Asegurar espacio después de cada coma
+        .replace(/,([^\s])/g, ', $1')
+        // Limpiar espacios múltiples y espacios al inicio/final
+        .replace(/\s+/g, ' ')
+        .trim()
+      
+      // Asegurar que no haya valores "undefined" o "null" en el texto
+      datosPersonalesRaw = datosPersonalesRaw
+        .replace(/undefined/gi, '')
+        .replace(/null/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      
+      const datosPersonales = datosPersonalesRaw
       
       // Información del hecho
       const fechaHoraHecho = `${fechaHechoTexto}, siendo las horas ${horaHechoTexto}`
@@ -524,24 +659,84 @@ export async function exportDenunciaFormalToPDF(denuncia: any) {
     pdf.text("FIRMAS:", marginSide, yPosition)
     yPosition += 15
 
+    // Obtener datos del funcionario desde los datos de la denuncia
+    // La API ya debe incluir estos datos en la respuesta
+    let funcionarioNombre = ''
+    let funcionarioDni = ''
+    
+    // Intentar obtener desde diferentes campos que pueden venir en la respuesta
+    if (denuncia.creador_nombre) {
+      funcionarioNombre = denuncia.creador_nombre
+    } else if (denuncia.funcionario_nombre) {
+      funcionarioNombre = denuncia.funcionario_nombre
+    } else if (denuncia.usuario_nombre) {
+      funcionarioNombre = denuncia.usuario_nombre
+    } else if (denuncia.creador_nombre_completo) {
+      funcionarioNombre = denuncia.creador_nombre_completo
+    }
+    
+    // Obtener DNI del funcionario
+    if (denuncia.creador_dni) {
+      funcionarioDni = denuncia.creador_dni
+    } else if (denuncia.funcionario_dni) {
+      funcionarioDni = denuncia.funcionario_dni
+    } else if (denuncia.usuario_dni) {
+      funcionarioDni = denuncia.usuario_dni
+    }
+
+    // Obtener datos del denunciante de forma segura
+    const nombreDenunciante = `${getSafeValue(denuncia.denunciante_nombre, '')} ${getSafeValue(denuncia.denunciante_apellido, '')}`.trim() || getSafeValue(denuncia.denunciante, '')
+    const dniDenunciante = getSafeValue(denuncia.denunciante_dni || denuncia.dni, '')
+    // Para teléfono y email, usar cadena vacía como default para no mostrar "No especificado"
+    const telefonoDenunciante = (denuncia.denunciante_telefono || denuncia.telefono) ? String(denuncia.denunciante_telefono || denuncia.telefono).trim() : ''
+    const emailDenunciante = (denuncia.denunciante_email || denuncia.email) ? String(denuncia.denunciante_email || denuncia.email).trim() : ''
+
     // Líneas para firmas con márgenes apropiados
     const firmaWidth = 70
     const firmaY = yPosition + 20
+    let currentYDenunciante = firmaY + 5
+    let currentYFuncionario = firmaY + 5
 
     // Firma del denunciante
     pdf.line(marginSide, firmaY, marginSide + firmaWidth, firmaY)
     pdf.setFont("times", "normal")
     pdf.setFontSize(smallFontSize)
-    pdf.text("Firma del Denunciante", marginSide, firmaY + 5)
-    pdf.text(`${denuncia.denunciante}`, marginSide, firmaY + 10)
-    pdf.text(`DNI: ${denuncia.dni}`, marginSide, firmaY + 15)
+    pdf.text("Firma del Denunciante", marginSide, currentYDenunciante)
+    currentYDenunciante += 5
+    
+    if (nombreDenunciante && nombreDenunciante !== 'No especificado' && nombreDenunciante.trim() !== '') {
+      pdf.text(nombreDenunciante, marginSide, currentYDenunciante)
+      currentYDenunciante += 5
+    }
+    
+    if (dniDenunciante && dniDenunciante !== 'No especificado' && dniDenunciante.trim() !== '') {
+      pdf.text(`DNI: ${dniDenunciante}`, marginSide, currentYDenunciante)
+      currentYDenunciante += 5
+    }
+    
+    if (telefonoDenunciante && telefonoDenunciante !== '' && telefonoDenunciante !== 'undefined' && telefonoDenunciante !== 'null') {
+      pdf.text(`Teléfono: ${telefonoDenunciante}`, marginSide, currentYDenunciante)
+      currentYDenunciante += 5
+    }
+    
+    if (emailDenunciante && emailDenunciante !== '' && emailDenunciante !== 'undefined' && emailDenunciante !== 'null') {
+      pdf.text(`Correo: ${emailDenunciante}`, marginSide, currentYDenunciante)
+    }
 
     // Firma del funcionario
     const funcionarioX = pageWidth - marginSide - firmaWidth
     pdf.line(funcionarioX, firmaY, funcionarioX + firmaWidth, firmaY)
-    pdf.text("Firma del Funcionario", funcionarioX, firmaY + 5)
-    pdf.text(`${denuncia.creadorNombre}`, funcionarioX, firmaY + 10)
-    pdf.text(`${denuncia.creadorDepartamento}`, funcionarioX, firmaY + 15)
+    pdf.text("Firma del Funcionario", funcionarioX, currentYFuncionario)
+    currentYFuncionario += 5
+    
+    if (funcionarioNombre && funcionarioNombre.trim() !== '') {
+      pdf.text(funcionarioNombre, funcionarioX, currentYFuncionario)
+      currentYFuncionario += 5
+    }
+    
+    if (funcionarioDni && funcionarioDni.trim() !== '') {
+      pdf.text(`DNI: ${funcionarioDni}`, funcionarioX, currentYFuncionario)
+    }
 
     // Añadir pie de página con márgenes apropiados
     const pageCount = pdf.getNumberOfPages()

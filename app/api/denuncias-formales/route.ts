@@ -67,7 +67,8 @@ export async function GET(request: Request) {
         de.nombre as departamento_nombre,
         es.nombre as estado_nombre,
         td.nombre as tipo_delito,
-        u.nombre || ' ' || u.apellido as creador_nombre
+        u.nombre || ' ' || u.apellido as creador_nombre,
+        u.dni as creador_dni
       FROM denuncias_formales df
       LEFT JOIN departamentos de ON df.departamento_id = de.id
       LEFT JOIN estados_denuncias es ON df.estado_id = es.id
@@ -226,6 +227,7 @@ export async function POST(request: Request) {
         es.nombre as estado_nombre,
         COALESCE(td.nombre, 'Delito no especificado') as tipo_delito_nombre,
         u.nombre || ' ' || u.apellido as creador_nombre,
+        u.dni as creador_dni,
         COALESCE(df.division, 'División de Robos y Hurtos') as division
       FROM denuncias_formales df
       LEFT JOIN departamentos de ON df.departamento_id = de.id

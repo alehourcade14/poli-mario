@@ -50,20 +50,23 @@ export default function Usuarios() {
   const router = useRouter()
 
   useEffect(() => {
+    // Esperar a que termine la carga del usuario
     if (loading) return
 
+    // Si no hay usuario, redirigir al login
     if (!user) {
       router.push("/")
       return
     }
 
-    // Verificar si es administrador
-    if (user.rol !== "admin" && user.rol !== "administrador") {
+    // Verificar si es administrador - redirigir si no lo es
+    const isAdmin = user.rol === "admin" || user.rol === "administrador"
+    if (!isAdmin) {
       router.push("/dashboard")
       return
     }
 
-    // Cargar usuarios desde la API
+    // Cargar usuarios desde la API solo si es administrador
     const fetchUsers = async () => {
       try {
         const response = await fetch('/api/usuarios', {
@@ -216,7 +219,26 @@ export default function Usuarios() {
     }
   }
 
-  if (loading || loadingUsers) {
+  // Mostrar estado de carga mientras se verifica el usuario
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si no hay usuario o no es administrador, no mostrar nada (ya se redirigió en useEffect)
+  const isAdmin = user?.rol === "admin" || user?.rol === "administrador"
+  if (!user || !isAdmin) {
+    return null
+  }
+
+  // Mostrar estado de carga mientras se cargan los usuarios
+  if (loadingUsers) {
     return (
       <DashboardLayout user={user}>
         <div className="p-6">
@@ -227,8 +249,6 @@ export default function Usuarios() {
       </DashboardLayout>
     )
   }
-
-  if (!user || (user.rol !== "admin" && user.rol !== "administrador")) return null
 
   return (
     <DashboardLayout user={user}>

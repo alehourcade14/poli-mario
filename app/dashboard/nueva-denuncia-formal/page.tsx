@@ -34,7 +34,7 @@ export default function NuevaDenunciaFormal() {
     departamento: "Departamento Cibercrimen",
     division: "",
     descripcion: "",
-    estado: "Consulta",
+    estado: "En Proceso",
     fechaDenuncia: new Date().toISOString().split("T")[0],
     horaDenuncia: new Date().toTimeString().slice(0, 5),
     fechaHecho: new Date().toISOString().split("T")[0],
@@ -116,23 +116,22 @@ export default function NuevaDenunciaFormal() {
           denunciante_nombre: formData.denunciante.split(' ')[0] || formData.denunciante,
           denunciante_apellido: formData.denunciante.split(' ').slice(1).join(' ') || '',
           denunciante_dni: formData.dni,
-          denunciante_telefono: '',
-          denunciante_email: '',
+          denunciante_telefono: formData.telefono,
+          denunciante_email: formData.email,
           denunciante_direccion: formData.domicilio,
           denunciante_nacionalidad: formData.nacionalidad,
           denunciante_estado_civil: formData.estadoCivil,
-          denunciante_profesion: formData.profesion,
-          fecha_hecho: formData.fechaDenuncia,
-          hora_hecho: formData.horaDenuncia,
-          lugar_hecho: formData.barrioHecho,
-          departamento_hecho: formData.barrio,
+          fecha_hecho: formData.fechaHecho,
+          hora_hecho: formData.horaHecho,
+          lugar_hecho: formData.lugarHecho,
+          departamento_hecho: formData.departamento,
           latitud: formData.ubicacion?.lat || null,
           longitud: formData.ubicacion?.lng || null,
           descripcion: formData.descripcion,
           tipo_delito: formData.tipo || 'No especificado',
           departamento: formData.departamento || 'Departamento Cibercrimen',
           division: formData.division || 'División de Robos y Hurtos',
-          observaciones: `Edad: ${formData.edad}, Sexo: ${formData.sexo}, Instrucción: ${formData.instruccion}`
+          sexo: formData.sexo
         })
       })
 
@@ -160,17 +159,17 @@ export default function NuevaDenunciaFormal() {
         dni: "",
         nacionalidad: "Argentina",
         estadoCivil: "",
+        domicilio: "",
         instruccion: "",
         edad: "",
         profesion: "",
-        domicilio: "",
         barrio: "",
         sexo: "",
         tipo: "",
         departamento: "",
         division: "",
         descripcion: "",
-        estado: "Consulta",
+        estado: "En Proceso",
         fechaDenuncia: new Date().toISOString().split("T")[0],
         horaDenuncia: new Date().toTimeString().slice(0, 5),
         fechaHecho: new Date().toISOString().split("T")[0],
@@ -274,17 +273,17 @@ export default function NuevaDenunciaFormal() {
         dni: "",
         nacionalidad: "Argentina",
         estadoCivil: "",
+        domicilio: "",
         instruccion: "",
         edad: "",
         profesion: "",
-        domicilio: "",
         barrio: "",
         sexo: "",
         tipo: "",
         departamento: "",
         division: "",
         descripcion: "",
-        estado: "Consulta",
+        estado: "En Proceso",
         fechaDenuncia: new Date().toISOString().split("T")[0],
         horaDenuncia: new Date().toTimeString().slice(0, 5),
         fechaHecho: new Date().toISOString().split("T")[0],
@@ -325,16 +324,15 @@ export default function NuevaDenunciaFormal() {
         denunciante_nombre: formData.denunciante.split(' ')[0] || formData.denunciante,
         denunciante_apellido: formData.denunciante.split(' ').slice(1).join(' ') || '',
         denunciante_dni: formData.dni,
-        denunciante_telefono: '',
-        denunciante_email: '',
+        denunciante_telefono: formData.telefono,
+        denunciante_email: formData.email,
         denunciante_direccion: formData.domicilio,
         denunciante_nacionalidad: formData.nacionalidad,
         denunciante_estado_civil: formData.estadoCivil,
-        denunciante_profesion: formData.profesion,
-        fecha_hecho: formData.fechaDenuncia,
-        hora_hecho: formData.horaDenuncia,
-        lugar_hecho: formData.barrioHecho,
-        departamento_hecho: formData.barrio,
+        fecha_hecho: formData.fechaHecho,
+        hora_hecho: formData.horaHecho,
+        lugar_hecho: formData.lugarHecho,
+        departamento_hecho: formData.departamento,
         latitud: formData.ubicacion?.lat || null,
         longitud: formData.ubicacion?.lng || null,
         descripcion: formData.descripcion,
@@ -342,7 +340,7 @@ export default function NuevaDenunciaFormal() {
         departamento: formData.departamento || 'Departamento Cibercrimen',
         division: formData.division || 'División de Robos y Hurtos',
         estado: formData.estado,
-        observaciones: `Edad: ${formData.edad}, Sexo: ${formData.sexo}, Instrucción: ${formData.instruccion}`
+        sexo: formData.sexo
       }
 
       console.log("📤 Enviando datos a la API:", payload)
@@ -398,7 +396,7 @@ export default function NuevaDenunciaFormal() {
         departamento: "",
         division: "",
         descripcion: "",
-        estado: "Consulta",
+        estado: "En Proceso",
         fechaDenuncia: new Date().toISOString().split("T")[0],
         horaDenuncia: new Date().toTimeString().slice(0, 5),
         fechaHecho: new Date().toISOString().split("T")[0],
@@ -572,6 +570,7 @@ export default function NuevaDenunciaFormal() {
                     <Input id="barrio" name="barrio" value={formData.barrio} onChange={handleChange} />
                   </div>
                 </div>
+
               </div>
 
               {/* Datos de la Denuncia */}
@@ -718,8 +717,8 @@ export default function NuevaDenunciaFormal() {
                       <SelectValue placeholder="Seleccionar estado" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Consulta">Consulta</SelectItem>
                       <SelectItem value="En Proceso">En Proceso</SelectItem>
+                      <SelectItem value="Consulta">Consulta</SelectItem>
                       <SelectItem value="Resuelta">Resuelta</SelectItem>
                     </SelectContent>
                   </Select>

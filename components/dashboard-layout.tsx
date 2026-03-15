@@ -52,10 +52,23 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
   ]
 
   // Filtrar menú según rol
-  const filteredMenuItems =
-    user?.rol === "operador"
-      ? menuItems.filter((item) => !["Usuarios", "Estadísticas"].includes(item.name))
-      : menuItems
+  const filteredMenuItems = (() => {
+    const isAdmin = user?.rol === "admin" || user?.rol === "administrador"
+    const isOperador = user?.rol === "operador"
+    
+    if (isOperador) {
+      // Operadores no ven Usuarios ni Estadísticas
+      return menuItems.filter((item) => !["Usuarios", "Estadísticas"].includes(item.name))
+    }
+    
+    if (!isAdmin) {
+      // Usuarios que no son administradores no ven Usuarios
+      return menuItems.filter((item) => item.name !== "Usuarios")
+    }
+    
+    // Administradores ven todo
+    return menuItems
+  })()
 
   return (
     <IdleSessionManager>
